@@ -1,0 +1,55 @@
+{
+  "appName": "Clenfit",
+  "tagline": "Tu progreso en el gimnasio, serie a serie.",
+  "loading": "Cargando…",
+  "nav": {
+    "home": "Inicio",
+    "history": "Historial",
+    "train": "Entrenar",
+    "exercises": "Ejercicios",
+    "analytics": "Análisis",
+    "settings": "Ajustes"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Añadir",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "search": "Buscar",
+    "back": "Volver",
+    "retry": "Reintentar"
+  },
+  "home": {
+    "startWorkout": "Empezar entrenamiento",
+    "freeWorkout": "Entrenamiento libre",
+    "resumeWorkout": "Continuar entrenamiento",
+    "inProgress": "Tienes un entrenamiento en curso",
+    "myRoutines": "Mis rutinas",
+    "thisWeek": "Esta semana",
+    "recentPrs": "Récords recientes",
+    "noWorkoutsYet": "Aquí verás tu resumen semanal cuando entrenes."
+  },
+  "stats": {
+    "workouts_one": "{{count}} entreno",
+    "workouts_other": "{{count}} entrenos",
+    "sets_one": "{{count}} serie",
+    "sets_other": "{{count}} series",
+    "volume": "Volumen",
+    "duration": "Duración"
+  },
+  "units": {
+    "kg": "kg",
+    "reps": "reps",
+    "min": "min",
+    "s": "s",
+    "km": "km",
+    "m": "m"
+  },
+  "error": {
+    "title": "Algo ha ido mal",
+    "generic": "Ha ocurrido un error inesperado."
+  }
+}

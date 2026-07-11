@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+@import './styles/tokens.css';
+@import '@fontsource-variable/inter';
+
+/* Force-dark override must win over the system media query in both directions */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-status-ok: var(--status-ok);
+  --color-status-warn: var(--status-warn);
+  --color-status-over: var(--status-over);
+  --radius-card: var(--radius-card);
+  --radius-sheet: var(--radius-sheet);
+  --radius-chip: var(--radius-chip);
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+/* Weights and reps use tabular digits so numbers never jitter */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}

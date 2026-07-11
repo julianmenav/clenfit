@@ -1,0 +1,15 @@
+{
+  "title": "Análisis",
+  "setsPerMuscle": "Series por grupo muscular",
+  "distribution": "Distribución muscular",
+  "frequency": "Frecuencia de entrenamiento",
+  "volumeTrend": "Volumen por semana",
+  "range": {
+    "4w": "4 sem",
+    "3m": "3 meses",
+    "1y": "1 año",
+    "all": "Todo"
+  },
+  "empty": "Entrena unas semanas y aquí verás tus tendencias.",
+  "perWeek": "series/semana"
+}

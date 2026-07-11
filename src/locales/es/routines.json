@@ -1,0 +1,21 @@
+{
+  "title": "Rutinas",
+  "new": "Nueva rutina",
+  "edit": "Editar rutina",
+  "name": "Nombre",
+  "namePlaceholder": "P. ej. PUSH",
+  "start": "Empezar",
+  "addExercise": "Añadir ejercicio",
+  "targetSets": "Series",
+  "targetReps": "Reps",
+  "targetRepsPlaceholder": "8-12",
+  "restSeconds": "Descanso (s)",
+  "empty": "Crea tu primera rutina o guarda un entrenamiento libre como rutina al terminarlo.",
+  "lastPerformed": "Última vez: {{date}}",
+  "neverPerformed": "Nunca realizada",
+  "times_one": "{{count}} vez",
+  "times_other": "{{count}} veces",
+  "deleteConfirm": "¿Eliminar la rutina «{{name}}»? El historial de entrenamientos no se borra.",
+  "exercises_one": "{{count}} ejercicio",
+  "exercises_other": "{{count}} ejercicios"
+}

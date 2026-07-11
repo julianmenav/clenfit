@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /customExercises/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /routines/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /exerciseStats/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /workouts/{docId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validWorkout();
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validWorkout() {
+      let d = request.resource.data;
+      return d.status in ['active', 'completed']
+        && d.startedAt is timestamp
+        && d.dateKey is string
+        && d.name is string
+        && d.exerciseIds is list
+        && d.exercises is list;
+    }
+  }
+}

@@ -1,0 +1,112 @@
+/*
+ * Clenfit design tokens — dark-mode-first.
+ * Theme resolution: no class on <html> = follows system; .light / .dark force a mode.
+ */
+
+:root {
+  /* Surfaces */
+  --bg: #0d0f0a;
+  --surface: #151711;
+  --surface-2: #1e211a;
+  --hairline: rgba(255, 255, 255, 0.08);
+
+  /* Ink */
+  --ink: #f5f6f2;
+  --ink-2: #a8ac9f;
+  --ink-3: #6f7368;
+
+  /* Brand accent (lime energy) */
+  --accent: #a3e635;
+  --on-accent: #1a2e05;
+
+  /* Status */
+  --status-ok: #30d158;
+  --status-warn: #ffc53d;
+  --status-over: #ff5d55;
+
+  /* Categorical palette — 8 slots (contrast + CVD checked on --surface) */
+  --cat-1: #3b82f6; /* blue */
+  --cat-2: #1fa396; /* teal */
+  --cat-3: #b78400; /* amber */
+  --cat-4: #17874e; /* green */
+  --cat-5: #8b7cf0; /* violet */
+  --cat-6: #e05252; /* red */
+  --cat-7: #d6549b; /* magenta */
+  --cat-8: #c9641f; /* orange */
+  --cat-cyan: #3aa6c9;
+  --cat-pink: #e07a9b;
+  --cat-gray: #8a8f98;
+
+  /* Shape & motion */
+  --radius-card: 16px;
+  --radius-sheet: 20px;
+  --radius-chip: 999px;
+
+  color-scheme: dark;
+}
+
+.light {
+  --bg: #f4f5f0;
+  --surface: #fbfbf8;
+  --surface-2: #eef0e8;
+  --hairline: rgba(0, 0, 0, 0.08);
+
+  --ink: #14160f;
+  --ink-2: #5b5e55;
+  --ink-3: #8b8e84;
+
+  --accent: #4d7c0f;
+  --on-accent: #ffffff;
+
+  --status-ok: #1e9e4f;
+  --status-warn: #b45309;
+  --status-over: #d03b3b;
+
+  --cat-1: #2563eb;
+  --cat-2: #0d8e7b;
+  --cat-3: #a16207;
+  --cat-4: #15803d;
+  --cat-5: #7a5af8;
+  --cat-6: #dc4444;
+  --cat-7: #c13584;
+  --cat-8: #c2410c;
+  --cat-cyan: #21809e;
+  --cat-pink: #c2537a;
+  --cat-gray: #6e7278;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    --bg: #f4f5f0;
+    --surface: #fbfbf8;
+    --surface-2: #eef0e8;
+    --hairline: rgba(0, 0, 0, 0.08);
+
+    --ink: #14160f;
+    --ink-2: #5b5e55;
+    --ink-3: #8b8e84;
+
+    --accent: #4d7c0f;
+    --on-accent: #ffffff;
+
+    --status-ok: #1e9e4f;
+    --status-warn: #b45309;
+    --status-over: #d03b3b;
+
+    --cat-1: #2563eb;
+    --cat-2: #0d8e7b;
+    --cat-3: #a16207;
+    --cat-4: #15803d;
+    --cat-5: #7a5af8;
+    --cat-6: #dc4444;
+    --cat-7: #c13584;
+    --cat-8: #c2410c;
+    --cat-cyan: #21809e;
+    --cat-pink: #c2537a;
+    --cat-gray: #6e7278;
+
+    color-scheme: light;
+  }
+}

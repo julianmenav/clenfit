@@ -1,0 +1,23 @@
+{
+  "title": "Ajustes",
+  "theme": {
+    "title": "Tema",
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "restTimer": {
+    "title": "Temporizador de descanso",
+    "enabled": "Iniciar automáticamente",
+    "duration": "Duración por defecto",
+    "seconds": "{{count}} s"
+  },
+  "oneRm": {
+    "title": "Fórmula de 1RM",
+    "epley": "Epley",
+    "brzycki": "Brzycki",
+    "help": "Se usa para estimar tu repetición máxima a partir de tus series."
+  },
+  "account": "Cuenta",
+  "signOut": "Cerrar sesión"
+}
