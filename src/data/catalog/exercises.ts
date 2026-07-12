@@ -469,6 +469,16 @@ export const CATALOG: ExerciseDef[] = [
     measurement: 'weight_reps',
     aliases: ['jalon a la cara'],
   },
+  {
+    id: 'cable-rear-delt-fly',
+    name: 'Aperturas inversas en polea',
+    muscle: 'shoulders',
+    secondaryMuscles: ['back'],
+    equipment: 'cable',
+    movement: 'rear_delt',
+    measurement: 'weight_reps',
+    aliases: ['cruce inverso en polea', 'reverse cable fly', 'aperturas posteriores en polea'],
+  },
 
   /* ------------------------------ Biceps ------------------------------- */
   {
