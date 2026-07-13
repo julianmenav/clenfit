@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Clenfit',
-        short_name: 'Clenfit',
+        name: 'TestoTracker',
+        short_name: 'TestoTracker',
         description: 'Tu progreso en el gimnasio, serie a serie.',
         lang: 'es',
         display: 'standalone',
