@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { applySessionPrs, detectLiveSetPrs, sessionCandidates, setCandidates } from './prs'
+import {
+  applySessionPrs,
+  detectLiveSetPrs,
+  displayPrCount,
+  prDisplayType,
+  sessionCandidates,
+  setCandidates,
+} from './prs'
 import type { SetEntry, WorkoutExercise } from './types'
 
 function set(partial: Partial<SetEntry>): SetEntry {
@@ -53,25 +60,39 @@ describe('candidatos a récord', () => {
 })
 
 describe('detección en vivo', () => {
-  it('primera serie de la historia = todo son récords', () => {
-    const prs = detectLiveSetPrs(set({ weightKg: 100, reps: 5 }), [], null)
+  it('la primera sesión de un ejercicio no anuncia récords (establece la base)', () => {
+    expect(detectLiveSetPrs(set({ weightKg: 100, reps: 5 }), [], null)).toEqual([])
+    expect(
+      detectLiveSetPrs(set({ weightKg: 100, reps: 5 }), [], { prs: {}, totalSessions: 0 }),
+    ).toEqual([])
+  })
+
+  it('a partir de la segunda sesión, superar la base es récord', () => {
+    const stats = {
+      prs: { heaviestWeightKg: { value: 100, workoutId: 'w', dateKey: '2026-01-01' } },
+      totalSessions: 1,
+    }
+    const prs = detectLiveSetPrs(set({ weightKg: 105, reps: 5 }), [], stats)
     expect(prs).toContain('heaviestWeightKg')
-    expect(prs).toContain('best1RmEpley')
-    expect(prs).toContain('mostReps')
     expect(prs).not.toContain('bestSessionVolumeKg')
   })
 
   it('igualar no es récord: hay que superar', () => {
     const stats = {
       prs: { heaviestWeightKg: { value: 100, workoutId: 'w', dateKey: '2026-01-01' } },
+      totalSessions: 1,
     }
     const prs = detectLiveSetPrs(set({ weightKg: 100, reps: 1 }), [], stats)
     expect(prs).not.toContain('heaviestWeightKg')
   })
 
   it('cuenta las series previas de la misma sesión', () => {
+    const stats = {
+      prs: { heaviestWeightKg: { value: 90, workoutId: 'w', dateKey: '2026-01-01' } },
+      totalSessions: 1,
+    }
     const prior = [set({ weightKg: 105, reps: 1 })]
-    const prs = detectLiveSetPrs(set({ weightKg: 102, reps: 1 }), prior, null)
+    const prs = detectLiveSetPrs(set({ weightKg: 102, reps: 1 }), prior, stats)
     expect(prs).not.toContain('heaviestWeightKg')
   })
 })
@@ -83,6 +104,7 @@ describe('applySessionPrs', () => {
         heaviestWeightKg: { value: 120, workoutId: 'old', dateKey: '2026-01-01' },
         mostReps: { value: 12, workoutId: 'old', dateKey: '2026-01-01' },
       },
+      totalSessions: 3,
     }
     const { newPrs, prs } = applySessionPrs(
       exercise([set({ weightKg: 100, reps: 15 })]),
@@ -96,22 +118,45 @@ describe('applySessionPrs', () => {
     expect(prs.heaviestWeightKg).toEqual({ value: 120, workoutId: 'old', dateKey: '2026-01-01' })
   })
 
-  it('sin historial, la primera sesión estrena todos los récords', () => {
-    const { newPrs } = applySessionPrs(
+  it('sin historial, la primera sesión establece la base sin anunciar récords', () => {
+    const { newPrs, prs } = applySessionPrs(
       exercise([set({ weightKg: 60, reps: 10 })]),
       null,
       'w1',
       '2026-07-11',
     )
-    expect(newPrs).toEqual(
-      expect.arrayContaining([
-        'heaviestWeightKg',
-        'best1RmEpley',
-        'best1RmBrzycki',
-        'bestSetVolumeKg',
-        'bestSessionVolumeKg',
-        'mostReps',
-      ]),
+    expect(newPrs).toEqual([])
+    expect(prs.heaviestWeightKg).toEqual({ value: 60, workoutId: 'w1', dateKey: '2026-07-11' })
+    expect(prs.mostReps).toEqual({ value: 10, workoutId: 'w1', dateKey: '2026-07-11' })
+    expect(prs.bestSetVolumeKg).toEqual({ value: 600, workoutId: 'w1', dateKey: '2026-07-11' })
+    expect(prs.bestSessionVolumeKg).toEqual({ value: 600, workoutId: 'w1', dateKey: '2026-07-11' })
+    expect(prs.best1RmEpley?.value).toBeCloseTo(80, 1)
+    expect(prs.best1RmBrzycki?.value).toBeCloseTo(80, 1)
+  })
+
+  it('la segunda sesión que supera la base sí anuncia récords', () => {
+    const first = applySessionPrs(exercise([set({ weightKg: 60, reps: 10 })]), null, 'w1', '2026-07-11')
+    const stats = { prs: first.prs, totalSessions: 1 }
+    const { newPrs } = applySessionPrs(
+      exercise([set({ weightKg: 65, reps: 10 })]),
+      stats,
+      'w2',
+      '2026-07-14',
     )
+    expect(newPrs).toContain('heaviestWeightKg')
+    expect(newPrs).toContain('best1RmEpley')
+    expect(newPrs).toContain('best1RmBrzycki')
+  })
+})
+
+describe('récords de cara al usuario', () => {
+  it('las dos fórmulas de 1RM colapsan en un solo tipo visible', () => {
+    expect(prDisplayType('best1RmEpley')).toBe('best1Rm')
+    expect(prDisplayType('best1RmBrzycki')).toBe('best1Rm')
+  })
+
+  it('displayPrCount cuenta el par de 1RM una sola vez', () => {
+    expect(displayPrCount(['best1RmEpley', 'best1RmBrzycki', 'heaviestWeightKg'])).toBe(2)
+    expect(displayPrCount([])).toBe(0)
   })
 })

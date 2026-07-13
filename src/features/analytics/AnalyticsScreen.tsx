@@ -10,15 +10,24 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartPie } from 'lucide-react'
+import { ChartPie, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { startOfWeek, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useCompletedWorkouts } from '@/data/hooks'
+import {
+  compareWeeks,
+  muscleBalance,
+  repRangeDistribution,
+  type BalanceGroup,
+  type RepRange,
+  type WeekTotals,
+} from '@/domain/analytics'
 import { muscleGroups, type MuscleGroup, type WithId, type Workout } from '@/domain/types'
 import { formatShortDate, toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
+import { OneRmProgressionCard } from './OneRmProgressionCard'
 
 type RangeKey = '4w' | '3m' | '1y' | 'all'
 const rangeDays: Record<RangeKey, number | null> = { '4w': 28, '3m': 91, '1y': 365, all: null }
@@ -28,13 +37,16 @@ export function AnalyticsScreen() {
   const workouts = useCompletedWorkouts(500)
   const [range, setRange] = useState<RangeKey>('3m')
 
+  const rangeFromKey = useMemo(() => {
+    const days = rangeDays[range]
+    return days == null ? undefined : toDateKey(subDays(new Date(), days))
+  }, [range])
+
   const filtered = useMemo(() => {
     if (!workouts) return []
-    const days = rangeDays[range]
-    if (days == null) return workouts
-    const from = toDateKey(subDays(new Date(), days))
-    return workouts.filter((w) => w.dateKey >= from)
-  }, [workouts, range])
+    if (rangeFromKey == null) return workouts
+    return workouts.filter((w) => w.dateKey >= rangeFromKey)
+  }, [workouts, rangeFromKey])
 
   if (workouts === undefined) {
     return <p className="px-4 pt-10 text-center text-ink-3">{t('common:loading')}</p>
@@ -43,6 +55,8 @@ export function AnalyticsScreen() {
   return (
     <div className="flex flex-col gap-5 px-4 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">{t('analytics:title')}</h1>
+
+      <WeeklySummary workouts={workouts} />
 
       <div className="flex gap-1.5">
         {(Object.keys(rangeDays) as RangeKey[]).map((k) => (
@@ -59,11 +73,119 @@ export function AnalyticsScreen() {
         <EmptyState icon={ChartPie} title={t('analytics:empty')} />
       ) : (
         <>
+          <OneRmProgressionCard workouts={workouts} fromDateKey={rangeFromKey} />
           <SetsPerMuscle workouts={filtered} />
+          <MuscleBalance workouts={filtered} />
+          <RepRanges workouts={filtered} />
           <VolumeTrend workouts={filtered} />
           <Frequency workouts={filtered} />
         </>
       )}
+    </div>
+  )
+}
+
+/** This calendar week (Monday start) vs the previous one, with trend arrows. */
+function WeeklySummary({ workouts }: { workouts: WithId<Workout>[] }) {
+  const { t } = useTranslation(['analytics', 'common'])
+
+  const { current, previous } = useMemo(() => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+    return compareWeeks(workouts, toDateKey(weekStart), toDateKey(subDays(weekStart, 7)))
+  }, [workouts])
+
+  const stats: { label: string; pick: (w: WeekTotals) => number; kg?: boolean }[] = [
+    { label: t('analytics:weekly.workouts'), pick: (w) => w.workouts },
+    { label: t('analytics:weekly.sets'), pick: (w) => w.sets },
+    { label: t('analytics:weekly.volume'), pick: (w) => w.volumeKg, kg: true },
+  ]
+
+  return (
+    <Card title={t('analytics:weekly.title')}>
+      <div className="grid grid-cols-3 gap-2">
+        {stats.map(({ label, pick, kg }) => {
+          const now = pick(current)
+          const before = pick(previous)
+          const delta = before > 0 ? Math.round(((now - before) / before) * 100) : null
+          const Icon = delta == null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown
+          const tone =
+            delta == null || delta === 0
+              ? 'text-ink-3'
+              : delta > 0
+                ? 'text-status-ok'
+                : 'text-status-over'
+          return (
+            <div key={label} className="rounded-card bg-surface-2 p-2.5">
+              <p className="text-xs text-ink-3">{label}</p>
+              <p className="tnum mt-0.5 text-lg font-bold">
+                {kg ? formatKg(now) : now}
+                {kg && <span className="text-xs font-medium text-ink-3"> {t('common:units.kg')}</span>}
+              </p>
+              <p className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${tone}`}>
+                <Icon className="size-3.5" />
+                {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta}%`}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+      <p className="pt-2 text-xs text-ink-3">{t('analytics:weekly.vsPrevWeek')}</p>
+    </Card>
+  )
+}
+
+/** Working sets per push/pull/legs/core group (token bars, no Recharts). */
+function MuscleBalance({ workouts }: { workouts: WithId<Workout>[] }) {
+  const { t } = useTranslation('analytics')
+  const balance = useMemo(() => muscleBalance(workouts), [workouts])
+  const entries = (Object.entries(balance) as [BalanceGroup, number][]).filter(([, n]) => n > 0)
+  if (entries.length === 0) return null
+  const total = entries.reduce((sum, [, n]) => sum + n, 0)
+
+  return (
+    <Card title={t('balance.title')}>
+      <BarList rows={entries.map(([g, n]) => ({ label: t(`balance.${g}`), value: n }))} total={total} />
+    </Card>
+  )
+}
+
+/** Working sets by rep range: strength / hypertrophy / endurance. */
+function RepRanges({ workouts }: { workouts: WithId<Workout>[] }) {
+  const { t } = useTranslation('analytics')
+  const dist = useMemo(() => repRangeDistribution(workouts), [workouts])
+  const entries = (Object.entries(dist) as [RepRange, number][]).filter(([, n]) => n > 0)
+  if (entries.length === 0) return null
+  const total = entries.reduce((sum, [, n]) => sum + n, 0)
+
+  return (
+    <Card title={t('repRanges.title')}>
+      <BarList rows={entries.map(([r, n]) => ({ label: t(`repRanges.${r}`), value: n }))} total={total} />
+    </Card>
+  )
+}
+
+function BarList({ rows, total }: { rows: { label: string; value: number }[]; total: number }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {rows.map(({ label, value }) => {
+        const pct = Math.round((value / total) * 100)
+        return (
+          <div key={label}>
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-ink-2">{label}</span>
+              <span className="tnum text-xs text-ink-3">
+                {value} · {pct}%
+              </span>
+            </div>
+            <div className="mt-1 h-2 rounded-full bg-surface-2">
+              <div
+                className="h-2 rounded-full bg-accent"
+                style={{ width: `${Math.max(pct, 2)}%` }}
+              />
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -9,8 +9,9 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useAllExerciseStats, useUserProfile } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { saveWorkoutAsRoutine, updateRoutineSlots } from '@/data/workoutMutations'
-import { detectLiveSetPrs } from '@/domain/prs'
-import type { ExerciseDef, PrType, SetEntry } from '@/domain/types'
+import { ghostForSet } from '@/domain/ghosts'
+import { detectLiveSetPrs, isBaselineSession, prDisplayType } from '@/domain/prs'
+import type { ExerciseDef, SetEntry } from '@/domain/types'
 import { formatClock } from '@/lib/dates'
 import { useActiveWorkoutStore } from '@/store/activeWorkout'
 import { useRestTimerStore } from '@/store/restTimer'
@@ -54,8 +55,8 @@ export function ActiveWorkoutScreen() {
       return
     }
 
-    // ghost values from the last session if the user hasn't typed anything
-    const ghost = statsMap?.get(ex.exerciseId)?.lastPerformance?.sets[setIndex]
+    // ghost values (last session or current-session weight fallback) if the user hasn't typed anything
+    const ghost = ghostForSet(ex.sets, setIndex, statsMap?.get(ex.exerciseId)?.lastPerformance?.sets)
     const merged: SetEntry = {
       ...set,
       weightKg: set.weightKg ?? ghost?.weightKg ?? null,
@@ -78,13 +79,16 @@ export function ActiveWorkoutScreen() {
     const priorSets = workout.exercises
       .filter((e) => e.exerciseId === ex.exerciseId)
       .flatMap((e) => e.sets.filter((s) => s.completed && s !== set))
-    const prs = detectLiveSetPrs(merged, priorSets, statsMap?.get(ex.exerciseId))
+    const stats = statsMap?.get(ex.exerciseId)
+    const prs = detectLiveSetPrs(merged, priorSets, stats)
     if (prs.length > 0) {
-      const labels = [...new Set(prs.map((p) => t(`workout:pr.types.${prLabel(p)}`)))]
+      const labels = [...new Set(prs.map((p) => t(`workout:pr.types.${prDisplayType(p)}`)))]
       toast.success(t('workout:pr.toast', { exercise: ex.exerciseName }), {
         description: labels.join(' · '),
       })
       navigator.vibrate?.(100)
+    } else if (isBaselineSession(stats) && priorSets.length === 0) {
+      toast.message(t('workout:pr.baseline', { exercise: ex.exerciseName }))
     }
 
     // automatic rest
@@ -239,20 +243,4 @@ export function ActiveWorkoutScreen() {
       />
     </div>
   )
-}
-
-function prLabel(p: PrType): 'heaviestWeight' | 'best1Rm' | 'bestSetVolume' | 'bestSessionVolume' | 'mostReps' {
-  switch (p) {
-    case 'heaviestWeightKg':
-      return 'heaviestWeight'
-    case 'best1RmEpley':
-    case 'best1RmBrzycki':
-      return 'best1Rm'
-    case 'bestSetVolumeKg':
-      return 'bestSetVolume'
-    case 'bestSessionVolumeKg':
-      return 'bestSessionVolume'
-    case 'mostReps':
-      return 'mostReps'
-  }
 }

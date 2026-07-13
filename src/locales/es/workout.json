@@ -44,6 +44,7 @@
   },
   "pr": {
     "toast": "¡Récord en {{exercise}}!",
+    "baseline": "Marca base establecida en {{exercise}}",
     "types": {
       "heaviestWeight": "Peso máximo",
       "best1Rm": "1RM estimado",

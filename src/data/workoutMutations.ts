@@ -14,7 +14,13 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { toDateKey } from '@/lib/dates'
-import { applySessionPrs, detectNewPrs, sessionCandidates, statsBaseline } from '@/domain/prs'
+import {
+  applySessionPrs,
+  detectNewPrs,
+  displayPrCount,
+  sessionCandidates,
+  statsBaseline,
+} from '@/domain/prs'
 import { pruneIncomplete, summarizeWorkout } from '@/domain/workoutSummary'
 import type {
   ExerciseDef,
@@ -147,7 +153,7 @@ export async function finishWorkout(
   for (const ex of exercises) {
     const prev = statsMap.get(ex.exerciseId) ?? null
     const { newPrs, prs } = applySessionPrs(ex, prev, active.id, active.dateKey)
-    prCount += newPrs.length
+    prCount += displayPrCount(newPrs)
     if (newPrs.length > 0) newPrsByExercise.set(ex.exerciseId, newPrs)
 
     const stats: WithId<ExerciseStats> = {

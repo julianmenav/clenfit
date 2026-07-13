@@ -40,6 +40,14 @@ export function sessionCandidates(sets: SetEntry[]): PrCandidates {
   return merged
 }
 
+/** The slice of `ExerciseStats` the record logic needs. */
+export type StatsForPrs = Pick<ExerciseStats, 'prs' | 'totalSessions'> | null | undefined
+
+/** First-ever session of an exercise: it establishes the baseline, not records. */
+export function isBaselineSession(stats: StatsForPrs): boolean {
+  return stats == null || stats.totalSessions === 0
+}
+
 export function statsBaseline(stats: Pick<ExerciseStats, 'prs'> | null | undefined): PrCandidates {
   if (!stats) return {}
   const out: PrCandidates = {}
@@ -67,8 +75,9 @@ export function detectNewPrs(candidates: PrCandidates, baseline: PrCandidates): 
 export function detectLiveSetPrs(
   set: SetEntry,
   priorSessionSets: SetEntry[],
-  stats: Pick<ExerciseStats, 'prs'> | null | undefined,
+  stats: StatsForPrs,
 ): PrType[] {
+  if (isBaselineSession(stats)) return []
   const baseline = mergeCandidates(statsBaseline(stats), ...priorSessionSets.map(setCandidates))
   delete baseline.bestSessionVolumeKg
   const candidates = setCandidates(set)
@@ -80,18 +89,50 @@ export interface SessionPrResult {
   prs: ExerciseStats['prs']
 }
 
-/** Merges the records of a finished session into the history. */
+/**
+ * Merges the records of a finished session into the history. On a baseline
+ * session the improved values are still stored, but none count as new records.
+ */
 export function applySessionPrs(
   exercise: WorkoutExercise,
-  stats: Pick<ExerciseStats, 'prs'> | null | undefined,
+  stats: StatsForPrs,
   workoutId: string,
   dateKey: string,
 ): SessionPrResult {
   const candidates = sessionCandidates(exercise.sets)
-  const newPrs = detectNewPrs(candidates, statsBaseline(stats))
+  const improved = detectNewPrs(candidates, statsBaseline(stats))
   const prs: ExerciseStats['prs'] = { ...(stats?.prs ?? {}) }
-  for (const type of newPrs) {
+  for (const type of improved) {
     prs[type] = { value: candidates[type]!, workoutId, dateKey }
   }
-  return { newPrs, prs }
+  return { newPrs: isBaselineSession(stats) ? [] : improved, prs }
+}
+
+/** Record types as shown to the user: both 1RM formulas collapse into one. */
+export type PrDisplayType =
+  | 'heaviestWeight'
+  | 'best1Rm'
+  | 'bestSetVolume'
+  | 'bestSessionVolume'
+  | 'mostReps'
+
+export function prDisplayType(p: PrType): PrDisplayType {
+  switch (p) {
+    case 'heaviestWeightKg':
+      return 'heaviestWeight'
+    case 'best1RmEpley':
+    case 'best1RmBrzycki':
+      return 'best1Rm'
+    case 'bestSetVolumeKg':
+      return 'bestSetVolume'
+    case 'bestSessionVolumeKg':
+      return 'bestSessionVolume'
+    case 'mostReps':
+      return 'mostReps'
+  }
+}
+
+/** Number of records as the user perceives them (1RM pair counts once). */
+export function displayPrCount(prs: PrType[]): number {
+  return new Set(prs.map(prDisplayType)).size
 }

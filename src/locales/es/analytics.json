@@ -11,5 +11,30 @@
     "all": "Todo"
   },
   "empty": "Entrena unas semanas y aquí verás tus tendencias.",
-  "perWeek": "series/semana"
+  "perWeek": "series/semana",
+  "weekly": {
+    "title": "Resumen semanal",
+    "vsPrevWeek": "vs. semana anterior",
+    "workouts": "Entrenos",
+    "sets": "Series",
+    "volume": "Volumen"
+  },
+  "oneRm": {
+    "title": "Progresión 1RM",
+    "exercise": "Ejercicio",
+    "empty": "Necesitas al menos dos sesiones con peso de este ejercicio."
+  },
+  "balance": {
+    "title": "Equilibrio muscular",
+    "push": "Empuje",
+    "pull": "Tirón",
+    "legs": "Pierna",
+    "core": "Core"
+  },
+  "repRanges": {
+    "title": "Rangos de repeticiones",
+    "strength": "Fuerza (1-5)",
+    "hypertrophy": "Hipertrofia (6-12)",
+    "endurance": "Resistencia (13+)"
+  }
 }

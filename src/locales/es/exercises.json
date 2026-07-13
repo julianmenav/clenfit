@@ -94,6 +94,7 @@
       "volume": "Volumen"
     },
     "sessions_one": "{{count}} sesión",
-    "sessions_other": "{{count}} sesiones"
+    "sessions_other": "{{count}} sesiones",
+    "prPoint": "Récord"
   }
 }

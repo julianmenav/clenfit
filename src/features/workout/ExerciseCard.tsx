@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeftRight, Minus, MoreVertical, Plus, Trash2, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { ghostForSet } from '@/domain/ghosts'
 import type { ExerciseStats, SetEntry, WithId, WorkoutExercise } from '@/domain/types'
 import { formatKg } from '@/lib/formatSet'
 import { SetHeader, SetRow } from './SetRow'
@@ -99,7 +100,7 @@ export function ExerciseCard({
             set={set}
             index={i}
             measurement={exercise.measurement}
-            ghost={stats?.lastPerformance?.sets[i]}
+            ghost={ghostForSet(exercise.sets, i, stats?.lastPerformance?.sets)}
             onPatch={(patch) => onPatchSet(i, patch)}
             onCycleType={() => onCycleType(i)}
             onComplete={() => onCompleteSet(i)}

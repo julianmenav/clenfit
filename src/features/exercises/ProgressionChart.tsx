@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type Key } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -8,6 +8,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useTranslation } from 'react-i18next'
+import { runningMaxFlags } from '@/domain/analytics'
 import { estimateSet1Rm } from '@/domain/oneRepMax'
 import { exerciseVolume } from '@/domain/volume'
 import { isWorkingSet } from '@/domain/volume'
@@ -16,20 +18,33 @@ import { formatShortDate } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import type { ProgressionMetric } from './ExerciseDetailScreen'
 
+interface Point {
+  dateKey: string
+  value: number
+  isPr: boolean
+}
+
 /** Progression of an exercise: max weight / estimated 1RM / volume per session. */
 export function ProgressionChart({
   workouts,
   exerciseId,
   metric,
   formula,
+  showPrMarkers = true,
+  fromDateKey,
 }: {
   workouts: WithId<Workout>[]
   exerciseId: string
   metric: ProgressionMetric
   formula: OneRmFormula
+  showPrMarkers?: boolean
+  /** Display cutoff; PR flags are computed on the full series before trimming. */
+  fromDateKey?: string
 }) {
+  const { t } = useTranslation('exercises')
+
   const data = useMemo(() => {
-    return [...workouts]
+    const series = [...workouts]
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
       .map((w) => {
         const sets = w.exercises
@@ -53,8 +68,12 @@ export function ProgressionChart({
         }
         return { dateKey: w.dateKey, value }
       })
-      .filter((d) => d.value != null)
-  }, [workouts, exerciseId, metric, formula])
+      .filter((d): d is { dateKey: string; value: number } => d.value != null)
+
+    const flags = runningMaxFlags(series.map((d) => d.value))
+    const points: Point[] = series.map((d, i) => ({ ...d, isPr: showPrMarkers && flags[i] }))
+    return fromDateKey == null ? points : points.filter((d) => d.dateKey >= fromDateKey)
+  }, [workouts, exerciseId, metric, formula, showPrMarkers, fromDateKey])
 
   if (data.length < 2) return null
 
@@ -82,11 +101,16 @@ export function ProgressionChart({
             cursor={{ stroke: 'var(--ink-3)', strokeDasharray: '3 3' }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null
-              const p = payload[0].payload as { dateKey: string; value: number }
+              const p = payload[0].payload as Point
               return (
                 <div className="rounded-card border border-hairline bg-surface-2 px-3 py-2 text-xs">
                   <div className="text-ink-3">{formatShortDate(new Date(p.dateKey))}</div>
                   <div className="tnum mt-0.5 font-semibold text-ink">{formatKg(p.value)} kg</div>
+                  {p.isPr && (
+                    <div className="mt-0.5 font-medium text-status-warn">
+                      {t('detail.prPoint')}
+                    </div>
+                  )}
                 </div>
               )
             }}
@@ -96,7 +120,33 @@ export function ProgressionChart({
             dataKey="value"
             stroke="var(--accent)"
             strokeWidth={2}
-            dot={{ r: 3, fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 2 }}
+            dot={(props: { key?: Key | null; cx?: number; cy?: number; payload?: Point }) => {
+              const { key, cx, cy, payload } = props
+              if (payload?.isPr) {
+                return (
+                  <circle
+                    key={key}
+                    cx={cx}
+                    cy={cy}
+                    r={4.5}
+                    fill="var(--status-warn)"
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                  />
+                )
+              }
+              return (
+                <circle
+                  key={key}
+                  cx={cx}
+                  cy={cy}
+                  r={3}
+                  fill="var(--accent)"
+                  stroke="var(--surface)"
+                  strokeWidth={2}
+                />
+              )
+            }}
             activeDot={{ r: 5, stroke: 'var(--surface)', strokeWidth: 2 }}
           />
         </LineChart>
