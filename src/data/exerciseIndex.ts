@@ -14,6 +14,7 @@ export function customToDef(c: WithId<CustomExercise>): ExerciseDef {
     equipment: c.equipment,
     movement: c.movement,
     measurement: c.measurement,
+    deprecated: c.deprecated,
     custom: true,
   }
 }

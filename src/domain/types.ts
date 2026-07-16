@@ -113,6 +113,7 @@ export const customExerciseSchema = z.object({
   equipment: z.enum(equipmentTypes),
   movement: z.enum(movements),
   measurement: z.enum(measurementTypes),
+  deprecated: z.boolean().optional(),
   createdAt: z.instanceof(Timestamp),
 })
 export type CustomExercise = z.infer<typeof customExerciseSchema>

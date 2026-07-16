@@ -139,8 +139,8 @@ export function ExercisePicker({
       <ExerciseForm
         open={creating}
         onOpenChange={setCreating}
-        initialName={query}
-        onCreated={(def) => {
+        initial={{ name: query }}
+        onSaved={(def) => {
           setCreating(false)
           select(def)
         }}

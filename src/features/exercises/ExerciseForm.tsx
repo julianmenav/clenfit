@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { Chip } from '@/components/ui/Chip'
 import { Sheet } from '@/components/ui/Sheet'
-import { createCustomExercise } from '@/data/exerciseMutations'
+import {
+  createCustomExercise,
+  updateCustomExercise,
+  type CustomExerciseInput,
+} from '@/data/exerciseMutations'
 import {
   equipmentTypes,
   measurementTypes,
@@ -16,21 +20,25 @@ import {
   type MuscleGroup,
 } from '@/domain/types'
 
-/** Alta de ejercicio personalizado (los tres ejes + tipo de registro). */
+/** Alta/edición de ejercicio personalizado (los tres ejes + tipo de registro). */
 export function ExerciseForm({
   open,
   onOpenChange,
-  onCreated,
-  initialName = '',
+  onSaved,
+  initial,
+  editId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated: (def: ExerciseDef) => void
-  initialName?: string
+  onSaved: (def: ExerciseDef) => void
+  /** Prefill: create-from-search, duplicate or edit. */
+  initial?: Partial<CustomExerciseInput>
+  /** Present → edits that custom exercise instead of creating one. */
+  editId?: string
 }) {
   const uid = useUser().uid
   const { t } = useTranslation(['exercises', 'common'])
-  const [name, setName] = useState(initialName)
+  const [name, setName] = useState('')
   const [muscle, setMuscle] = useState<MuscleGroup>('chest')
   const [secondary, setSecondary] = useState<MuscleGroup[]>([])
   const [equipment, setEquipment] = useState<Equipment>('machine')
@@ -39,8 +47,15 @@ export function ExerciseForm({
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (open) setName(initialName)
-  }, [open, initialName])
+    if (!open) return
+    setName(initial?.name ?? '')
+    setMuscle(initial?.muscle ?? 'chest')
+    setSecondary(initial?.secondaryMuscles ?? [])
+    setEquipment(initial?.equipment ?? 'machine')
+    setMovement(initial?.movement ?? 'other')
+    setMeasurement(initial?.measurement ?? 'weight_reps')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `initial` is an inline literal at call sites
+  }, [open])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,17 +70,20 @@ export function ExerciseForm({
         movement,
         measurement,
       }
-      const id = await createCustomExercise(uid, data)
-      onCreated({ id, ...data, custom: true })
-      setName('')
-      setSecondary([])
+      const id = editId ?? (await createCustomExercise(uid, data))
+      if (editId) await updateCustomExercise(uid, editId, data)
+      onSaved({ id, ...data, custom: true })
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={t('exercises:addCustom')}>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t(editId ? 'exercises:editCustom' : 'exercises:addCustom')}
+    >
       <form onSubmit={submit} className="flex flex-col gap-4 pt-2">
         <label className="flex flex-col gap-1 text-sm text-ink-2">
           {t('exercises:form.name')}
