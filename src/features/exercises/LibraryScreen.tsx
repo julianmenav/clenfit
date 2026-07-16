@@ -9,9 +9,11 @@ import {
   equipmentTypes,
   muscleGroups,
   type Equipment,
+  type ExerciseDef,
   type MuscleGroup,
 } from '@/domain/types'
 import { ExerciseForm } from './ExerciseForm'
+import { ExerciseMenu } from './ExerciseMenu'
 
 export function LibraryScreen() {
   const { t } = useTranslation('exercises')
@@ -78,28 +80,55 @@ export function LibraryScreen() {
 
       {results.length === 0 ? (
         <p className="py-8 text-center text-sm text-ink-2">{t('noResults')}</p>
+      ) : query.trim() ? (
+        <Rows items={results} />
       ) : (
-        <ul className="flex flex-col">
-          {results.map((def) => (
-            <li key={def.id}>
-              <Link
-                to={`/ejercicios/${def.id}`}
-                className="flex items-center justify-between gap-3 rounded-card px-2 py-2.5 active:bg-surface-2"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{def.name}</span>
-                  <span className="block text-xs text-ink-3">
-                    {t(`muscle.${def.muscle}`)} · {t(`equipment.${def.equipment}`)}
-                    {def.custom ? ` · ${t('customBadge')}` : ''}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {results.some((d) => d.custom) && (
+            <section>
+              <h2 className="pb-1 text-xs font-semibold uppercase tracking-wide text-ink-3">
+                {t('sections.mine')}
+              </h2>
+              <Rows items={results.filter((d) => d.custom)} />
+            </section>
+          )}
+          {results.some((d) => !d.custom) && (
+            <section>
+              <h2 className="pb-1 text-xs font-semibold uppercase tracking-wide text-ink-3">
+                {t('sections.catalog')}
+              </h2>
+              <Rows items={results.filter((d) => !d.custom)} />
+            </section>
+          )}
+        </>
       )}
 
-      <ExerciseForm open={creating} onOpenChange={setCreating} onCreated={() => setCreating(false)} />
+      <ExerciseForm open={creating} onOpenChange={setCreating} onSaved={() => setCreating(false)} />
     </div>
+  )
+}
+
+function Rows({ items }: { items: ExerciseDef[] }) {
+  const { t } = useTranslation('exercises')
+  return (
+    <ul className="flex flex-col">
+      {items.map((def) => (
+        <li key={def.id} className="flex items-center gap-1">
+          <Link
+            to={`/ejercicios/${def.id}`}
+            className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-card px-2 py-2.5 active:bg-surface-2"
+          >
+            <span className="min-w-0">
+              <span className="block truncate font-medium">{def.name}</span>
+              <span className="block text-xs text-ink-3">
+                {t(`muscle.${def.muscle}`)} · {t(`equipment.${def.equipment}`)}
+                {def.custom ? ` · ${t('customBadge')}` : ''}
+              </span>
+            </span>
+          </Link>
+          <ExerciseMenu def={def} />
+        </li>
+      ))}
+    </ul>
   )
 }

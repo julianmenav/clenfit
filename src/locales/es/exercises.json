@@ -5,6 +5,16 @@
   "addCustom": "Crear ejercicio",
   "editCustom": "Editar ejercicio",
   "customBadge": "Personalizado",
+  "sections": {
+    "mine": "Mis ejercicios",
+    "catalog": "Catálogo"
+  },
+  "menu": {
+    "duplicate": "Duplicar"
+  },
+  "copyName": "{{name}} (copia)",
+  "deleteTitle": "¿Eliminar ejercicio?",
+  "deleteBody": "Dejará de aparecer en la búsqueda. Tu historial y tus récords se conservan.",
   "form": {
     "name": "Nombre",
     "namePlaceholder": "P. ej. Press inclinado con agarre neutro",

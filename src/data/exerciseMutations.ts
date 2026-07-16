@@ -1,4 +1,4 @@
-import { addDoc, setDoc, Timestamp } from 'firebase/firestore'
+import { addDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import type { CustomExercise } from '@/domain/types'
 import { customExerciseDoc, customExercisesCol } from './converters'
 
@@ -16,11 +16,11 @@ export async function createCustomExercise(
   return ref.id
 }
 
+/** Partial update; `{ deprecated: true }` doubles as the soft delete. */
 export function updateCustomExercise(
   uid: string,
   id: string,
-  data: CustomExerciseInput,
-  createdAt: Timestamp,
+  data: Partial<CustomExerciseInput>,
 ): Promise<void> {
-  return setDoc(customExerciseDoc(uid, id), { id, ...data, createdAt })
+  return updateDoc(customExerciseDoc(uid, id), data)
 }

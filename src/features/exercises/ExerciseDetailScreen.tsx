@@ -1,8 +1,9 @@
 import { lazy, Suspense, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { ArrowLeft, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useExerciseIndex } from '@/data/exerciseIndex'
+import { ExerciseMenu } from './ExerciseMenu'
 import { useExerciseStats, useExerciseWorkouts, useUserProfile } from '@/data/hooks'
 import type { PrType } from '@/domain/types'
 import { formatShortDate } from '@/lib/dates'
@@ -17,6 +18,7 @@ export type ProgressionMetric = 'weight' | 'oneRm' | 'volume'
 
 export function ExerciseDetailScreen() {
   const { exerciseId = '' } = useParams()
+  const navigate = useNavigate()
   const { t } = useTranslation(['exercises', 'workout', 'common'])
   const { byId } = useExerciseIndex()
   const stats = useExerciseStats(exerciseId)
@@ -53,7 +55,7 @@ export function ExerciseDetailScreen() {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-bold">{name}</h1>
           {def && (
             <p className="text-xs text-ink-3">
@@ -62,6 +64,7 @@ export function ExerciseDetailScreen() {
             </p>
           )}
         </div>
+        {def && <ExerciseMenu def={def} onDeleted={() => void navigate('/ejercicios')} />}
       </header>
 
       {stats === null || (stats && stats.totalSessions === 0) ? (
