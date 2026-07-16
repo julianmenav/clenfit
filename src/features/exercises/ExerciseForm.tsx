@@ -44,7 +44,6 @@ export function ExerciseForm({
   const [equipment, setEquipment] = useState<Equipment>('machine')
   const [movement, setMovement] = useState<Movement>('other')
   const [measurement, setMeasurement] = useState<Measurement>('weight_reps')
-  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -57,25 +56,25 @@ export function ExerciseForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `initial` is an inline literal at call sites
   }, [open])
 
-  async function submit(e: React.FormEvent) {
+  // writes are not awaited: offline they stay queued in Firestore until reconnect
+  function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || busy) return
-    setBusy(true)
-    try {
-      const data = {
-        name: name.trim(),
-        muscle,
-        secondaryMuscles: secondary,
-        equipment,
-        movement,
-        measurement,
-      }
-      const id = editId ?? (await createCustomExercise(uid, data))
-      if (editId) await updateCustomExercise(uid, editId, data)
-      onSaved({ id, ...data, custom: true })
-    } finally {
-      setBusy(false)
+    if (!name.trim()) return
+    const data = {
+      name: name.trim(),
+      muscle,
+      secondaryMuscles: secondary,
+      equipment,
+      movement,
+      measurement,
     }
+    const id = editId ?? createCustomExercise(uid, data)
+    if (editId) {
+      updateCustomExercise(uid, editId, data).catch((err) =>
+        console.error('[updateCustomExercise]', err),
+      )
+    }
+    onSaved({ id, ...data, custom: true })
   }
 
   return (
@@ -179,7 +178,7 @@ export function ExerciseForm({
 
         <button
           type="submit"
-          disabled={busy || !name.trim()}
+          disabled={!name.trim()}
           className="h-12 rounded-card bg-accent font-semibold text-on-accent disabled:opacity-60"
         >
           {t('common:actions.save')}

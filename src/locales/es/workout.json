@@ -68,5 +68,6 @@
   "resume": {
     "title": "Entrenamiento en curso",
     "continue": "Continuar"
-  }
+  },
+  "finishedOffline": "Entrenamiento guardado en el dispositivo. Se subirá al recuperar la conexión."
 }

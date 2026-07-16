@@ -1,10 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { ChartPie, Dumbbell, History, House, Play, Settings } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { useUser } from '@/app/AuthProvider'
+import { OfflineBanner } from '@/components/ui/OfflineBanner'
 import { useActiveWorkout } from '@/data/hooks'
-import { useActiveWorkoutStore } from '@/store/activeWorkout'
+import { saveWorkout } from '@/data/workoutMutations'
+import { flushPendingSave, useActiveWorkoutStore } from '@/store/activeWorkout'
+import { PwaUpdatePrompt } from '@/app/PwaUpdatePrompt'
 import { ActiveSessionBar } from '@/features/workout/ActiveSessionBar'
 import { RestTimerWatcher } from '@/features/workout/RestTimerWatcher'
 import { useStartWorkout } from '@/features/workout/useStartWorkout'
@@ -28,15 +32,31 @@ export function AppLayout() {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
+  // hard save: flush the debounced sync before the OS can kill the app
+  // (visibilitychange→hidden is the reliable signal on iOS; pagehide covers the rest)
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') flushPendingSave()
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    window.addEventListener('pagehide', flushPendingSave)
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden)
+      window.removeEventListener('pagehide', flushPendingSave)
+    }
+  }, [])
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col lg:grid lg:max-w-[1600px] lg:grid-cols-[220px_1fr] lg:items-start lg:gap-10 lg:px-8">
       <RemoteWorkoutHydrator />
       <RestTimerWatcher />
+      <PwaUpdatePrompt />
 
       <main
         className="w-full flex-1 pb-28 lg:col-start-2 lg:row-start-1 lg:pb-10 lg:pt-4"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
+        <OfflineBanner />
         <Outlet />
       </main>
 
@@ -90,27 +110,36 @@ export function AppLayout() {
 
 /** Adopts the active Firestore doc if the local store is empty (another device / reinstall). */
 function RemoteWorkoutHydrator() {
+  const uid = useUser().uid
   const remote = useActiveWorkout()
   const hydrate = useActiveWorkoutStore((s) => s.hydrateFromRemote)
+  const repushed = useRef(false)
 
   useEffect(() => {
-    if (remote !== undefined) hydrate(remote)
-  }, [remote, hydrate])
+    if (remote === undefined) return
+    hydrate(remote)
+    // local wins over remote: re-push it once so Firestore catches up after an
+    // offline kill that swallowed the last debounced save
+    const local = useActiveWorkoutStore.getState().workout
+    if (!repushed.current && local) {
+      repushed.current = true
+      saveWorkout(uid, local).catch((err) => console.error('[hydrator] re-push', err))
+    }
+  }, [remote, hydrate, uid])
 
   return null
 }
 
 function TrainFab() {
   const { t } = useTranslation()
-  const { starting, startAndGo } = useStartWorkout()
+  const { startAndGo } = useStartWorkout()
 
   return (
     <div className="flex justify-center">
       <button
         type="button"
         aria-label={t('nav.train')}
-        disabled={starting}
-        onClick={() => void startAndGo()}
+        onClick={() => startAndGo()}
         className="-mt-6 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent shadow-lg transition-transform active:scale-95 disabled:opacity-60"
       >
         <Play className="size-7" strokeWidth={2.5} />
@@ -121,13 +150,12 @@ function TrainFab() {
 
 function TrainSideButton() {
   const { t } = useTranslation()
-  const { starting, startAndGo } = useStartWorkout()
+  const { startAndGo } = useStartWorkout()
 
   return (
     <button
       type="button"
-      disabled={starting}
-      onClick={() => void startAndGo()}
+      onClick={() => startAndGo()}
       className="mt-6 flex h-11 items-center justify-center gap-2 rounded-card bg-accent font-semibold text-on-accent transition-transform active:scale-[0.98] disabled:opacity-60"
     >
       <Play className="size-5" strokeWidth={2.5} />

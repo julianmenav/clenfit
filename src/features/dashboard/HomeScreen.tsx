@@ -12,7 +12,7 @@ import type { Routine, WithId } from '@/domain/types'
 export function HomeScreen() {
   const { t } = useTranslation(['common', 'routines'])
   const active = useActiveWorkoutStore((s) => s.workout)
-  const { startAndGo, starting } = useStartWorkout()
+  const { startAndGo } = useStartWorkout()
   const routines = useRoutines()
   const recent = useCompletedWorkouts(60)
 
@@ -37,7 +37,7 @@ export function HomeScreen() {
       {active ? (
         <button
           type="button"
-          onClick={() => void startAndGo()}
+          onClick={() => startAndGo()}
           className="flex items-center justify-between rounded-card bg-accent px-5 py-4 text-left text-on-accent"
         >
           <span>
@@ -49,8 +49,7 @@ export function HomeScreen() {
       ) : (
         <button
           type="button"
-          disabled={starting}
-          onClick={() => void startAndGo()}
+          onClick={() => startAndGo()}
           className="flex h-14 items-center justify-center gap-2 rounded-card bg-accent text-lg font-bold text-on-accent transition-transform active:scale-[0.99] disabled:opacity-60"
         >
           <Play className="size-6" strokeWidth={2.5} />
@@ -72,7 +71,7 @@ export function HomeScreen() {
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
             {routines.map((r) => (
-              <RoutineCard key={r.id} routine={r} disabled={active != null || starting} />
+              <RoutineCard key={r.id} routine={r} disabled={active != null} />
             ))}
           </div>
         )}
@@ -117,7 +116,7 @@ function RoutineCard({ routine, disabled }: { routine: WithId<Routine>; disabled
       <button
         type="button"
         disabled={disabled}
-        onClick={() => void startAndGo(routine)}
+        onClick={() => startAndGo(routine)}
         className="flex h-9 items-center justify-center gap-1.5 rounded-card bg-accent text-sm font-semibold text-on-accent disabled:opacity-50"
       >
         <Play className="size-4" />

@@ -1,5 +1,4 @@
 import {
-  addDoc,
   deleteDoc,
   doc,
   getDocs,
@@ -73,13 +72,16 @@ export function exerciseFromDef(
   }
 }
 
-/** Creates the active doc in Firestore (empty or preloaded from a routine). */
-export async function startWorkout(
+/**
+ * Creates the active doc (client-generated id, write not awaited so it also
+ * works offline: Firestore queues it durably and uploads on reconnect).
+ */
+export function startWorkout(
   uid: string,
   name: string,
   routine?: WithId<Routine>,
   resolveDef?: (exerciseId: string) => ExerciseDef | undefined,
-): Promise<WithId<Workout>> {
+): WithId<Workout> {
   const exercises: WorkoutExercise[] = (routine?.slots ?? []).map((slot, i) => {
     const def = resolveDef?.(slot.exerciseId)
     return {
@@ -112,8 +114,10 @@ export async function startWorkout(
     setsByMuscle: null,
   }
 
-  const ref = await addDoc(workoutsCol(uid), { id: '', ...workout })
-  return { id: ref.id, ...workout }
+  const ref = doc(workoutsCol(uid))
+  const withId: WithId<Workout> = { id: ref.id, ...workout }
+  setDoc(ref, withId).catch((err) => console.error('[startWorkout]', err))
+  return withId
 }
 
 /** Syncs the full active doc (called by the store with debounce). */
@@ -134,12 +138,13 @@ export interface FinishResult {
 /**
  * Closes the session: prunes incomplete sets, computes totals and PRs, and
  * writes the workout + exerciseStats (+ routine counters) in a single batch.
+ * The commit is not awaited: offline it stays queued until reconnect.
  */
-export async function finishWorkout(
+export function finishWorkout(
   uid: string,
   active: WithId<Workout>,
   statsMap: Map<string, WithId<ExerciseStats>>,
-): Promise<FinishResult | null> {
+): FinishResult | null {
   const exercises = pruneIncomplete(active.exercises)
   if (exercises.length === 0) return null
 
@@ -187,7 +192,7 @@ export async function finishWorkout(
     })
   }
 
-  await batch.commit()
+  batch.commit().catch((err) => console.error('[finishWorkout]', err))
   return { workout, newPrsByExercise, prCount }
 }
 
@@ -202,12 +207,8 @@ function slotsFromWorkout(workout: Workout): RoutineSlot[] {
   }))
 }
 
-/** Saves a freestyle workout as a reusable routine. */
-export async function saveWorkoutAsRoutine(
-  uid: string,
-  workout: Workout,
-  name: string,
-): Promise<string> {
+/** Saves a freestyle workout as a reusable routine (offline-safe, not awaited). */
+export function saveWorkoutAsRoutine(uid: string, workout: Workout, name: string): string {
   const routine: Routine = {
     name,
     order: Date.now(),
@@ -217,7 +218,10 @@ export async function saveWorkoutAsRoutine(
     timesPerformed: 1,
     createdAt: Timestamp.now(),
   }
-  const ref = await addDoc(routinesCol(uid), { id: '', ...routine })
+  const ref = doc(routinesCol(uid))
+  setDoc(ref, { id: ref.id, ...routine }).catch((err) =>
+    console.error('[saveWorkoutAsRoutine]', err),
+  )
   return ref.id
 }
 
@@ -231,6 +235,8 @@ export function updateRoutineSlots(uid: string, routineId: string, workout: Work
 /**
  * Rebuilds an exercise's exerciseStats by walking its full history.
  * Used after deleting/editing a past workout (the denormalized stats go stale).
+ * Offline, getDocs falls back to the local cache (warm via the history
+ * listener); a partial cache self-heals on the next recompute.
  */
 export async function recomputeExerciseStats(uid: string, exerciseId: string): Promise<void> {
   const snap = await getDocs(
@@ -245,7 +251,7 @@ export async function recomputeExerciseStats(uid: string, exerciseId: string): P
 
   const statsRef = exerciseStatsDoc(uid, exerciseId)
   if (sessions.length === 0) {
-    await deleteDoc(statsRef)
+    deleteDoc(statsRef).catch((err) => console.error('[recomputeExerciseStats]', err))
     return
   }
 
@@ -274,12 +280,12 @@ export async function recomputeExerciseStats(uid: string, exerciseId: string): P
     totalSessions: sessions.length,
     updatedAt: Timestamp.now(),
   }
-  await setDoc(statsRef, stats)
+  setDoc(statsRef, stats).catch((err) => console.error('[recomputeExerciseStats]', err))
 }
 
 /** Deletes a completed workout and rebuilds the stats of its exercises. */
 export async function deleteCompletedWorkout(uid: string, workout: WithId<Workout>): Promise<void> {
-  await deleteWorkout(uid, workout.id)
+  deleteWorkout(uid, workout.id).catch((err) => console.error('[deleteCompletedWorkout]', err))
   const unique = [...new Set(workout.exerciseIds)]
   await Promise.all(unique.map((exerciseId) => recomputeExerciseStats(uid, exerciseId)))
 }

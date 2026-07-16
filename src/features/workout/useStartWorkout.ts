@@ -12,15 +12,14 @@ export function useStartWorkout() {
   const { t } = useTranslation('workout')
   const { byId } = useExerciseIndex()
   const workout = useActiveWorkoutStore((s) => s.workout)
-  const starting = useActiveWorkoutStore((s) => s.starting)
   const start = useActiveWorkoutStore((s) => s.start)
 
-  async function startAndGo(routine?: WithId<Routine>) {
+  function startAndGo(routine?: WithId<Routine>) {
     if (!workout) {
-      await start(uid, t('free'), routine, (id) => byId.get(id))
+      start(uid, t('free'), routine, (id) => byId.get(id))
     }
     navigate('/entrenamiento')
   }
 
-  return { hasActive: workout != null, starting, startAndGo }
+  return { hasActive: workout != null, startAndGo }
 }

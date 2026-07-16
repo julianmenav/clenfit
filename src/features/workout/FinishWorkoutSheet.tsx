@@ -17,13 +17,11 @@ export function FinishWorkoutSheet({
   onOpenChange,
   workout,
   onConfirm,
-  busy,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   workout: WithId<Workout>
   onConfirm: (opts: FinishOptions) => void
-  busy: boolean
 }) {
   const { t } = useTranslation(['workout', 'common'])
   const [saveAsRoutine, setSaveAsRoutine] = useState(false)
@@ -94,7 +92,7 @@ export function FinishWorkoutSheet({
 
         <button
           type="button"
-          disabled={!canFinish || busy}
+          disabled={!canFinish}
           onClick={() =>
             onConfirm({
               saveAsRoutineName: saveAsRoutine ? routineName.trim() : null,

@@ -1,4 +1,4 @@
-import { addDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { doc, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
 import type { Routine, RoutineSlot, WithId } from '@/domain/types'
 import { routineDoc, routinesCol } from './converters'
 
@@ -7,7 +7,8 @@ export interface RoutineInput {
   slots: RoutineSlot[]
 }
 
-export async function createRoutine(uid: string, input: RoutineInput): Promise<string> {
+/** Client-generated id, write not awaited: also works offline. */
+export function createRoutine(uid: string, input: RoutineInput): string {
   const routine: Routine = {
     name: input.name,
     order: Date.now(),
@@ -17,7 +18,8 @@ export async function createRoutine(uid: string, input: RoutineInput): Promise<s
     timesPerformed: 0,
     createdAt: Timestamp.now(),
   }
-  const ref = await addDoc(routinesCol(uid), { id: '', ...routine })
+  const ref = doc(routinesCol(uid))
+  setDoc(ref, { id: ref.id, ...routine }).catch((err) => console.error('[createRoutine]', err))
   return ref.id
 }
 

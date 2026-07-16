@@ -29,11 +29,14 @@ import type {
 
 const SAVE_DEBOUNCE_MS = 1500
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+let pendingSave: { uid: string; workout: WithId<Workout> } | null = null
 
 function scheduleSave(uid: string, workout: WithId<Workout>) {
+  pendingSave = { uid, workout }
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     saveTimer = null
+    pendingSave = null
     saveWorkout(uid, workout).catch((err) => console.error('[activeWorkout] save', err))
   }, SAVE_DEBOUNCE_MS)
 }
@@ -41,12 +44,23 @@ function scheduleSave(uid: string, workout: WithId<Workout>) {
 function cancelPendingSave() {
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = null
+  pendingSave = null
+}
+
+/**
+ * Fires the debounced save immediately (on visibilitychange/pagehide): the
+ * write lands in Firestore's durable queue even offline, so nothing is lost
+ * if the OS kills the app afterwards.
+ */
+export function flushPendingSave() {
+  if (!pendingSave) return
+  const { uid, workout } = pendingSave
+  cancelPendingSave()
+  saveWorkout(uid, workout).catch((err) => console.error('[activeWorkout] flush', err))
 }
 
 interface ActiveWorkoutState {
   workout: WithId<Workout> | null
-  /** true while `start` creates the doc in Firestore */
-  starting: boolean
 
   hydrateFromRemote: (remote: WithId<Workout> | null) => void
   start: (
@@ -54,7 +68,7 @@ interface ActiveWorkoutState {
     name: string,
     routine?: WithId<Routine>,
     resolveDef?: (exerciseId: string) => ExerciseDef | undefined,
-  ) => Promise<void>
+  ) => void
   addExercise: (uid: string, def: ExerciseDef) => void
   removeExercise: (uid: string, index: number) => void
   swapExercise: (uid: string, index: number, def: ExerciseDef) => void
@@ -63,11 +77,8 @@ interface ActiveWorkoutState {
   updateSet: (uid: string, exIndex: number, setIndex: number, patch: Partial<SetEntry>) => void
   cycleSetType: (uid: string, exIndex: number, setIndex: number) => void
   setNotes: (uid: string, notes: string) => void
-  finish: (
-    uid: string,
-    statsMap: Map<string, WithId<ExerciseStats>>,
-  ) => Promise<FinishResult | null>
-  discard: (uid: string) => Promise<void>
+  finish: (uid: string, statsMap: Map<string, WithId<ExerciseStats>>) => FinishResult | null
+  discard: (uid: string) => void
 }
 
 const setTypeCycle: SetType[] = ['normal', 'warmup', 'dropset', 'failure']
@@ -87,7 +98,6 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
 
       return {
         workout: null,
-        starting: false,
 
         hydrateFromRemote: (remote) => {
           const local = get().workout
@@ -95,15 +105,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           // an existing local wins: it is more recent than whatever is in Firestore
         },
 
-        start: async (uid, name, routine, resolveDef) => {
-          if (get().workout || get().starting) return
-          set({ starting: true })
-          try {
-            const workout = await startWorkout(uid, name, routine, resolveDef)
-            set({ workout })
-          } finally {
-            set({ starting: false })
-          }
+        start: (uid, name, routine, resolveDef) => {
+          if (get().workout) return
+          set({ workout: startWorkout(uid, name, routine, resolveDef) })
         },
 
         addExercise: (uid, def) =>
@@ -208,33 +212,43 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
 
         setNotes: (uid, notes) => mutate(uid, (w) => ({ ...w, notes: notes || null })),
 
-        finish: async (uid, statsMap) => {
+        finish: (uid, statsMap) => {
           const workout = get().workout
           if (!workout) return null
           cancelPendingSave()
-          const result = await finishWorkout(uid, workout, statsMap)
+          const result = finishWorkout(uid, workout, statsMap)
           if (result) set({ workout: null })
           return result
         },
 
-        discard: async (uid) => {
+        discard: (uid) => {
           const workout = get().workout
           if (!workout) return
           cancelPendingSave()
           set({ workout: null })
-          await deleteWorkout(uid, workout.id)
+          deleteWorkout(uid, workout.id).catch((err) => console.error('[discard]', err))
         },
       }
     },
     {
       name: 'clenfit:activeWorkout',
       storage: createJSONStorage(() => localStorage, {
-        replacer: (_key, value) =>
-          value instanceof Timestamp ? { __ts: value.toMillis() } : value,
-        reviver: (_key, value) =>
-          value !== null && typeof value === 'object' && '__ts' in (value as object)
-            ? Timestamp.fromMillis((value as { __ts: number }).__ts)
-            : value,
+        // Timestamp.toJSON() runs BEFORE any replacer (JSON.stringify semantics),
+        // so timestamps land in storage as {type:'firestore/timestamp/1.0',...};
+        // the reviver must restore real instances or Firestore writes of a
+        // rehydrated workout fail schema validation.
+        reviver: (_key, value) => {
+          if (value === null || typeof value !== 'object') return value
+          if ('__ts' in value) {
+            // legacy format from a previous replacer
+            return Timestamp.fromMillis((value as { __ts: number }).__ts)
+          }
+          const v = value as { type?: string; seconds?: number; nanoseconds?: number }
+          if (v.type === 'firestore/timestamp/1.0') {
+            return new Timestamp(v.seconds ?? 0, v.nanoseconds ?? 0)
+          }
+          return value
+        },
       }),
       partialize: (state) => ({ workout: state.workout }) as ActiveWorkoutState,
     },
