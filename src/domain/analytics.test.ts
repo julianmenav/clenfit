@@ -35,6 +35,7 @@ function workoutWithSets(sets: SetEntry[]): Pick<Workout, 'exercises'> {
         slotIndex: null,
         swappedFrom: null,
         restSeconds: null,
+        notes: null,
         sets,
       },
     ],

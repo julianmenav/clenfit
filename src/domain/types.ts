@@ -147,6 +147,8 @@ export const workoutExerciseSchema = z.object({
   slotIndex: z.number().int().nullable(),
   swappedFrom: z.string().nullable(),
   restSeconds: z.number().int().nullable(),
+  /** Session note for this exercise. Defaulted so docs written before the field parse. */
+  notes: z.string().nullable().default(null),
   sets: z.array(setEntrySchema),
 })
 export type WorkoutExercise = z.infer<typeof workoutExerciseSchema>

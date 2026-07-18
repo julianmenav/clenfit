@@ -26,6 +26,7 @@ function exercise(sets: SetEntry[], muscle = 'chest'): WorkoutExercise {
     slotIndex: null,
     swappedFrom: null,
     restSeconds: null,
+    notes: null,
     sets,
   }
 }
@@ -75,5 +76,10 @@ describe('pruneIncomplete', () => {
     expect(pruned).toHaveLength(2)
     expect(pruned[0].sets).toHaveLength(1)
     expect(pruned.map((e) => e.order)).toEqual([0, 1])
+  })
+
+  it('conserva las notas del ejercicio', () => {
+    const withNotes = { ...exercise([set({ reps: 10 })]), notes: 'mejor técnica' }
+    expect(pruneIncomplete([withNotes])[0].notes).toBe('mejor técnica')
   })
 })

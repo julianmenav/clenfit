@@ -68,6 +68,7 @@ export function exerciseFromDef(
     slotIndex: opts.slotIndex ?? null,
     swappedFrom: null,
     restSeconds: opts.restSeconds ?? null,
+    notes: null,
     sets: Array.from({ length: n }, (_, i) => emptySet(i)),
   }
 }
@@ -93,6 +94,7 @@ export function startWorkout(
       slotIndex: slot.order,
       swappedFrom: null,
       restSeconds: slot.restSeconds,
+      notes: null,
       sets: Array.from({ length: Math.max(1, slot.targetSets ?? 3) }, (_, j) => emptySet(j)),
     }
   })

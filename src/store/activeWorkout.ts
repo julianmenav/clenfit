@@ -78,6 +78,7 @@ interface ActiveWorkoutState {
   updateSet: (uid: string, exIndex: number, setIndex: number, patch: Partial<SetEntry>) => void
   cycleSetType: (uid: string, exIndex: number, setIndex: number) => void
   setNotes: (uid: string, notes: string) => void
+  setExerciseNotes: (uid: string, exIndex: number, notes: string) => void
   finish: (uid: string, statsMap: Map<string, WithId<ExerciseStats>>) => FinishResult | null
   discard: (uid: string) => void
 }
@@ -221,6 +222,14 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           })),
 
         setNotes: (uid, notes) => mutate(uid, (w) => ({ ...w, notes: notes || null })),
+
+        setExerciseNotes: (uid, exIndex, notes) =>
+          mutate(uid, (w) => ({
+            ...w,
+            exercises: w.exercises.map((ex, i) =>
+              i === exIndex ? { ...ex, notes: notes || null } : ex,
+            ),
+          })),
 
         finish: (uid, statsMap) => {
           const workout = get().workout

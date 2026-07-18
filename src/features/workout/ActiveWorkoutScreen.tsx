@@ -200,6 +200,7 @@ export function ActiveWorkoutScreen() {
               onSwap={() => setSwapIndex(i)}
               onRemove={() => setRemoveIndex(i)}
               onReorder={workout.exercises.length > 1 ? () => setReorderOpen(true) : undefined}
+              onSetNotes={(notes) => store.setExerciseNotes(uid, i, notes)}
             />
           ))}
         </div>

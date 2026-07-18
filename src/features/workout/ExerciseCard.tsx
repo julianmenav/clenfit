@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { ArrowLeftRight, ArrowUpDown, Minus, MoreVertical, Plus, Trash2, Trophy } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  Minus,
+  MoreVertical,
+  Plus,
+  StickyNote,
+  Trash2,
+  Trophy,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ghostForSet } from '@/domain/ghosts'
 import type { ExerciseStats, SetEntry, WithId, WorkoutExercise } from '@/domain/types'
@@ -18,6 +27,7 @@ export function ExerciseCard({
   onSwap,
   onRemove,
   onReorder,
+  onSetNotes,
 }: {
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
@@ -29,9 +39,12 @@ export function ExerciseCard({
   onSwap: () => void
   onRemove: () => void
   onReorder?: () => void
+  onSetNotes: (notes: string) => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const showNotes = notesOpen || exercise.notes != null
 
   const best = stats?.prs.heaviestWeightKg?.value
   const bestReps = stats?.prs.mostReps?.value
@@ -75,6 +88,13 @@ export function ExerciseCard({
                   label={t('workout:swapExercise')}
                   onClick={menuAction(onSwap)}
                 />
+                {!showNotes && (
+                  <MenuItem
+                    icon={<StickyNote className="size-4" />}
+                    label={t('workout:exerciseNotes.add')}
+                    onClick={menuAction(() => setNotesOpen(true))}
+                  />
+                )}
                 {onReorder && (
                   <MenuItem
                     icon={<ArrowUpDown className="size-4" />}
@@ -125,6 +145,16 @@ export function ExerciseCard({
         <Plus className="size-4" />
         {t('workout:addSet')}
       </button>
+
+      {showNotes && (
+        <textarea
+          value={exercise.notes ?? ''}
+          onChange={(e) => onSetNotes(e.target.value)}
+          placeholder={t('workout:exerciseNotes.placeholder')}
+          rows={2}
+          className="mt-2 w-full resize-none rounded-card border border-hairline bg-surface-2 p-2.5 text-sm outline-none focus:border-accent"
+        />
+      )}
     </section>
   )
 }

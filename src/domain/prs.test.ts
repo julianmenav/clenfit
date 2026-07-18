@@ -33,6 +33,7 @@ function exercise(sets: SetEntry[]): WorkoutExercise {
     slotIndex: null,
     swappedFrom: null,
     restSeconds: null,
+    notes: null,
     sets,
   }
 }

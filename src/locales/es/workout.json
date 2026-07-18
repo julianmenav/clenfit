@@ -15,6 +15,10 @@
   "rpe": "RPE",
   "notes": "Notas",
   "notesPlaceholder": "Notas del entrenamiento…",
+  "exerciseNotes": {
+    "add": "Añadir nota",
+    "placeholder": "Nota del ejercicio…"
+  },
   "finish": "Terminar",
   "discard": "Descartar entrenamiento",
   "discardConfirm": "¿Descartar este entrenamiento? Se perderán las series registradas.",

@@ -26,6 +26,7 @@ function exercise(sets: SetEntry[], muscle = 'chest'): WorkoutExercise {
     slotIndex: null,
     swappedFrom: null,
     restSeconds: null,
+    notes: null,
     sets,
   }
 }
