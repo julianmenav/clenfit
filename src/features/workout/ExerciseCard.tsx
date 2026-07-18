@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeftRight, Minus, MoreVertical, Plus, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeftRight, ArrowUpDown, Minus, MoreVertical, Plus, Trash2, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ghostForSet } from '@/domain/ghosts'
 import type { ExerciseStats, SetEntry, WithId, WorkoutExercise } from '@/domain/types'
@@ -17,6 +17,7 @@ export function ExerciseCard({
   onRemoveLastSet,
   onSwap,
   onRemove,
+  onReorder,
 }: {
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
@@ -27,6 +28,7 @@ export function ExerciseCard({
   onRemoveLastSet: () => void
   onSwap: () => void
   onRemove: () => void
+  onReorder?: () => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
   const [menuOpen, setMenuOpen] = useState(false)
@@ -73,6 +75,13 @@ export function ExerciseCard({
                   label={t('workout:swapExercise')}
                   onClick={menuAction(onSwap)}
                 />
+                {onReorder && (
+                  <MenuItem
+                    icon={<ArrowUpDown className="size-4" />}
+                    label={t('workout:reorder.menuItem')}
+                    onClick={menuAction(onReorder)}
+                  />
+                )}
                 {exercise.sets.length > 1 && (
                   <MenuItem
                     icon={<Minus className="size-4" />}

@@ -22,6 +22,12 @@
   "removeLastSet": "Quitar última serie",
   "removeExerciseConfirm": "¿Quitar «{{name}}» y sus series de este entrenamiento?",
   "swapExercise": "Cambiar ejercicio",
+  "reorder": {
+    "menuItem": "Reordenar ejercicios",
+    "title": "Reordenar ejercicios",
+    "moveUp": "Subir",
+    "moveDown": "Bajar"
+  },
   "similar": "Similares",
   "allExercises": "Todos los ejercicios",
   "emptyTitle": "Sin ejercicios todavía",
