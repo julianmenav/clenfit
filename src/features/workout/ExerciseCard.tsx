@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   ArrowLeftRight,
   ArrowUpDown,
+  History,
   Minus,
   MoreVertical,
   Plus,
@@ -28,6 +29,7 @@ export function ExerciseCard({
   onRemove,
   onReorder,
   onSetNotes,
+  onShowHistory,
 }: {
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
@@ -40,6 +42,7 @@ export function ExerciseCard({
   onRemove: () => void
   onReorder?: () => void
   onSetNotes: (notes: string) => void
+  onShowHistory: () => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
   const [menuOpen, setMenuOpen] = useState(false)
@@ -59,7 +62,7 @@ export function ExerciseCard({
   return (
     <section className="rounded-card border border-hairline bg-surface p-3">
       <header className="flex items-start justify-between gap-2 pb-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate font-semibold">{exercise.exerciseName}</h2>
           {(best != null || bestReps != null) && (
             <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-3">
@@ -69,6 +72,15 @@ export function ExerciseCard({
             </p>
           )}
         </div>
+
+        <button
+          type="button"
+          aria-label={t('workout:lastPerformances.title')}
+          onClick={onShowHistory}
+          className="flex size-9 shrink-0 items-center justify-center rounded-card text-ink-3 active:bg-surface-2"
+        >
+          <History className="size-5" />
+        </button>
 
         <div className="relative shrink-0">
           <button

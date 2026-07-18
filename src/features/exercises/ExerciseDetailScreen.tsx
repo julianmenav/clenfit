@@ -7,7 +7,8 @@ import { ExerciseMenu } from './ExerciseMenu'
 import { useExerciseStats, useExerciseWorkouts, useUserProfile } from '@/data/hooks'
 import type { PrType } from '@/domain/types'
 import { formatShortDate } from '@/lib/dates'
-import { formatKg, formatSet } from '@/lib/formatSet'
+import { formatKg } from '@/lib/formatSet'
+import { ExerciseSessionSummary } from './ExerciseSessionSummary'
 
 // Recharts solo cuando se abre el detalle con historial
 const ProgressionChart = lazy(() =>
@@ -138,30 +139,15 @@ export function ExerciseDetailScreen() {
               </span>
             </h2>
             <div className="flex flex-col gap-2">
-              {workouts.map((w) => {
-                const ex = w.exercises.find((e) => e.exerciseId === exerciseId)
-                if (!ex) return null
-                return (
-                  <Link
-                    key={w.id}
-                    to={`/historial/${w.id}`}
-                    className="rounded-card border border-hairline bg-surface p-3 active:bg-surface-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {formatShortDate(new Date(w.dateKey))}
-                      </span>
-                      <span className="text-xs text-ink-3">{w.name}</span>
-                    </div>
-                    <p className="tnum mt-1 text-sm text-ink-2">
-                      {ex.sets
-                        .filter((s) => s.completed)
-                        .map((s) => formatSet(s, ex.measurement))
-                        .join(' · ')}
-                    </p>
-                  </Link>
-                )
-              })}
+              {workouts.map((w) => (
+                <Link
+                  key={w.id}
+                  to={`/historial/${w.id}`}
+                  className="rounded-card border border-hairline bg-surface p-3 active:bg-surface-2"
+                >
+                  <ExerciseSessionSummary workout={w} exerciseId={exerciseId} />
+                </Link>
+              ))}
             </div>
           </section>
         </>
