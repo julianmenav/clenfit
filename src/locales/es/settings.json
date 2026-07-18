@@ -19,5 +19,13 @@
     "help": "Se usa para estimar tu repetición máxima a partir de tus series."
   },
   "account": "Cuenta",
-  "signOut": "Cerrar sesión"
+  "signOut": "Cerrar sesión",
+  "install": {
+    "title": "Instalar aplicación",
+    "help": "Instalada en tu pantalla de inicio funciona a pantalla completa y sin conexión.",
+    "action": "Instalar",
+    "iosTitle": "Instalar en iPhone",
+    "iosStep1": "Toca el botón Compartir en Safari",
+    "iosStep2": "Elige «Añadir a pantalla de inicio»"
+  }
 }

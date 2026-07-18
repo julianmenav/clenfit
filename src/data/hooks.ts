@@ -101,6 +101,32 @@ export function useExerciseWorkouts(exerciseId: string, max = 60): WithId<Workou
   )
 }
 
+/**
+ * Whether a workout doc has writes not yet acknowledged by the server.
+ * Note: while online this flickers true on every local write (latency
+ * compensation) — only meaningful for UI when combined with being offline.
+ */
+export function useWorkoutHasPendingWrites(workoutId: string | undefined): boolean {
+  const uid = useUser().uid
+  const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    if (!workoutId) {
+      setPending(false)
+      return
+    }
+    const ref = doc(workoutsCol(uid), workoutId)
+    return onSnapshot(
+      ref,
+      { includeMetadataChanges: true },
+      (snap) => setPending(snap.metadata.hasPendingWrites),
+      (err) => console.error('[firestore]', err),
+    )
+  }, [uid, workoutId])
+
+  return pending
+}
+
 /** A specific workout. null = does not exist. */
 export function useWorkout(workoutId: string): WithId<Workout> | null | undefined {
   const uid = useUser().uid

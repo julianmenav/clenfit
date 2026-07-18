@@ -24,7 +24,6 @@ export function RoutineEditorScreen() {
   const [loaded, setLoaded] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   // one-time load when opening an existing routine (without clobbering the in-progress edit)
   useEffect(() => {
@@ -62,20 +61,16 @@ export function RoutineEditorScreen() {
     ])
   }
 
-  async function save() {
-    if (!name.trim() || slots.length === 0 || busy) return
-    setBusy(true)
-    try {
-      const input = { name: name.trim(), slots: slots.map((s, i) => ({ ...s, order: i })) }
-      if (existing) {
-        await updateRoutine(uid, existing, input)
-      } else {
-        await createRoutine(uid, input)
-      }
-      navigate('/rutinas', { replace: true })
-    } finally {
-      setBusy(false)
+  // writes are not awaited: offline they stay queued in Firestore until reconnect
+  function save() {
+    if (!name.trim() || slots.length === 0) return
+    const input = { name: name.trim(), slots: slots.map((s, i) => ({ ...s, order: i })) }
+    if (existing) {
+      updateRoutine(uid, existing, input).catch((err) => console.error('[updateRoutine]', err))
+    } else {
+      createRoutine(uid, input)
     }
+    navigate('/rutinas', { replace: true })
   }
 
   return (
@@ -184,8 +179,8 @@ export function RoutineEditorScreen() {
 
       <button
         type="button"
-        disabled={!name.trim() || slots.length === 0 || busy}
-        onClick={() => void save()}
+        disabled={!name.trim() || slots.length === 0}
+        onClick={save}
         className="h-12 rounded-card bg-accent font-semibold text-on-accent disabled:opacity-60"
       >
         {t('common:actions.save')}

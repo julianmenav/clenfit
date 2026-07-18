@@ -11,7 +11,7 @@ export function RoutinesScreen() {
   const { t } = useTranslation(['routines', 'common'])
   const routines = useRoutines()
   const active = useActiveWorkoutStore((s) => s.workout)
-  const { startAndGo, starting } = useStartWorkout()
+  const { startAndGo } = useStartWorkout()
 
   if (routines === undefined) {
     return <p className="px-4 pt-10 text-center text-ink-3">{t('common:loading')}</p>
@@ -72,8 +72,8 @@ export function RoutinesScreen() {
               </Link>
               <button
                 type="button"
-                disabled={active != null || starting}
-                onClick={() => void startAndGo(r)}
+                disabled={active != null}
+                onClick={() => startAndGo(r)}
                 className="flex h-10 items-center gap-1.5 rounded-card bg-accent px-3.5 text-sm font-semibold text-on-accent disabled:opacity-50"
               >
                 <Play className="size-4" />

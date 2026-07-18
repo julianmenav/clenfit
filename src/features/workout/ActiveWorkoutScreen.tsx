@@ -1,18 +1,20 @@
-import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router'
-import { Dumbbell, Plus, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Navigate } from 'react-router'
+import { CloudOff, Dumbbell, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { useAllExerciseStats, useUserProfile } from '@/data/hooks'
+import { useAllExerciseStats, useUserProfile, useWorkoutHasPendingWrites } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { saveWorkoutAsRoutine, updateRoutineSlots } from '@/data/workoutMutations'
 import { ghostForSet } from '@/domain/ghosts'
 import { detectLiveSetPrs, isBaselineSession, prDisplayType } from '@/domain/prs'
 import type { ExerciseDef, SetEntry } from '@/domain/types'
 import { formatClock } from '@/lib/dates'
+import { useOnline } from '@/lib/useOnline'
+import { useWakeLock } from '@/lib/useWakeLock'
 import { useActiveWorkoutStore } from '@/store/activeWorkout'
 import { useRestTimerStore } from '@/store/restTimer'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
@@ -23,7 +25,6 @@ import { useTicker } from './useTicker'
 
 export function ActiveWorkoutScreen() {
   const uid = useUser().uid
-  const navigate = useNavigate()
   const { t } = useTranslation(['workout', 'common'])
   const workout = useActiveWorkoutStore((s) => s.workout)
   const store = useActiveWorkoutStore()
@@ -31,17 +32,31 @@ export function ActiveWorkoutScreen() {
   const { byId } = useExerciseIndex()
   const profile = useUserProfile()
   const startRest = useRestTimerStore((s) => s.start)
+  const online = useOnline()
+  const hasPendingWrites = useWorkoutHasPendingWrites(workout?.id)
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [swapIndex, setSwapIndex] = useState<number | null>(null)
   const [removeIndex, setRemoveIndex] = useState<number | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   useTicker(1000, workout != null)
+  useWakeLock(workout != null)
 
-  if (!workout) return <Navigate to="/" replace />
+  // Set before clearing the store: the workout emptying is itself what
+  // navigates (an imperative navigate() would lose the race against this
+  // redirect, since clearing re-renders before the router transition commits).
+  const finishedIdRef = useRef<string | null>(null)
+
+  if (!workout) {
+    return (
+      <Navigate
+        to={finishedIdRef.current ? `/historial/${finishedIdRef.current}` : '/'}
+        replace
+      />
+    )
+  }
 
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000 - workout.startedAt.seconds))
 
@@ -98,28 +113,32 @@ export function ActiveWorkoutScreen() {
     }
   }
 
-  async function confirmFinish(opts: FinishOptions) {
+  function confirmFinish(opts: FinishOptions) {
     if (!workout || !statsMap) return
-    setBusy(true)
-    try {
-      const result = await store.finish(uid, statsMap)
-      if (!result) return
-      useRestTimerStore.getState().stop()
-
-      if (opts.saveAsRoutineName) {
-        await saveWorkoutAsRoutine(uid, result.workout, opts.saveAsRoutineName)
-      }
-      if (opts.updateRoutine && result.workout.routineId) {
-        await updateRoutineSlots(uid, result.workout.routineId, result.workout)
-      }
-      if (result.prCount > 0) {
-        toast.success(t('workout:finishSheet.prs', { count: result.prCount }))
-      }
-      navigate(`/historial/${result.workout.id}`, { replace: true })
-    } finally {
-      setBusy(false)
-      setFinishOpen(false)
+    finishedIdRef.current = workout.id
+    const result = store.finish(uid, statsMap)
+    setFinishOpen(false)
+    if (!result) {
+      finishedIdRef.current = null
+      return
     }
+    useRestTimerStore.getState().stop()
+
+    if (opts.saveAsRoutineName) {
+      saveWorkoutAsRoutine(uid, result.workout, opts.saveAsRoutineName)
+    }
+    if (opts.updateRoutine && result.workout.routineId) {
+      updateRoutineSlots(uid, result.workout.routineId, result.workout).catch((err) =>
+        console.error('[updateRoutineSlots]', err),
+      )
+    }
+    if (result.prCount > 0) {
+      toast.success(t('workout:finishSheet.prs', { count: result.prCount }))
+    }
+    if (!navigator.onLine) {
+      toast.message(t('workout:finishedOffline'))
+    }
+    // navigation to /historial/:id happens via the !workout redirect
   }
 
   return (
@@ -129,7 +148,15 @@ export function ActiveWorkoutScreen() {
       <header className="flex items-center justify-between gap-3 pb-4">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold">{workout.name}</h1>
-          <p className="tnum text-sm text-ink-3">{formatClock(elapsed)}</p>
+          <p className="tnum flex items-center gap-2 text-sm text-ink-3">
+            {formatClock(elapsed)}
+            {!online && hasPendingWrites && (
+              <span className="flex items-center gap-1 text-xs">
+                <CloudOff className="size-3" />
+                {t('common:net.pendingSync')}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex shrink-0 gap-2">
           <button
@@ -228,8 +255,7 @@ export function ActiveWorkoutScreen() {
         onConfirm={() => {
           setDiscardOpen(false)
           useRestTimerStore.getState().stop()
-          void store.discard(uid)
-          navigate('/', { replace: true })
+          store.discard(uid)
         }}
         onCancel={() => setDiscardOpen(false)}
       />
@@ -238,8 +264,7 @@ export function ActiveWorkoutScreen() {
         open={finishOpen}
         onOpenChange={setFinishOpen}
         workout={workout}
-        onConfirm={(opts) => void confirmFinish(opts)}
-        busy={busy}
+        onConfirm={confirmFinish}
       />
     </div>
   )

@@ -10,6 +10,16 @@
     "analytics": "Análisis",
     "settings": "Ajustes"
   },
+  "net": {
+    "offline": "Sin conexión — los cambios se guardan en este dispositivo",
+    "backOnline": "Conexión recuperada",
+    "pendingSync": "Pendiente de subir"
+  },
+  "pwa": {
+    "updateAvailable": "Nueva versión disponible",
+    "updateAction": "Actualizar",
+    "offlineReady": "La app ya funciona sin conexión"
+  },
   "actions": {
     "save": "Guardar",
     "cancel": "Cancelar",

@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { updateDoc } from 'firebase/firestore'
-import { LogOut } from 'lucide-react'
+import { Download, LogOut, Share, SquarePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
+import { Sheet } from '@/components/ui/Sheet'
 import { userDoc } from '@/data/converters'
 import { useUserProfile } from '@/data/hooks'
 import type { OneRmFormula } from '@/domain/types'
 import { auth } from '@/lib/firebase'
+import { isIos, isStandalone, promptInstall, useCanPromptInstall } from '@/lib/installPrompt'
 import { applyThemePref, type ThemePref } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
@@ -91,6 +94,8 @@ export function SettingsScreen() {
         />
       </Section>
 
+      <InstallSection />
+
       <Section title={t('settings:account')}>
         <p className="pb-3 text-sm text-ink-2">{user.email}</p>
         <button
@@ -103,6 +108,41 @@ export function SettingsScreen() {
         </button>
       </Section>
     </div>
+  )
+}
+
+/** Hidden when already installed. Chromium: native prompt; iOS Safari: manual steps. */
+function InstallSection() {
+  const { t } = useTranslation('settings')
+  const canPrompt = useCanPromptInstall()
+  const [iosHelpOpen, setIosHelpOpen] = useState(false)
+
+  if (isStandalone() || (!canPrompt && !isIos())) return null
+
+  return (
+    <Section title={t('install.title')} help={t('install.help')}>
+      <button
+        type="button"
+        onClick={() => (canPrompt ? void promptInstall() : setIosHelpOpen(true))}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-card bg-surface-2 font-medium"
+      >
+        <Download className="size-4" />
+        {t('install.action')}
+      </button>
+
+      <Sheet open={iosHelpOpen} onOpenChange={setIosHelpOpen} title={t('install.iosTitle')}>
+        <ol className="flex flex-col gap-3 pt-2 pb-4 text-sm">
+          <li className="flex items-center gap-3 rounded-card bg-surface-2 p-3">
+            <Share className="size-5 shrink-0 text-accent" />
+            {t('install.iosStep1')}
+          </li>
+          <li className="flex items-center gap-3 rounded-card bg-surface-2 p-3">
+            <SquarePlus className="size-5 shrink-0 text-accent" />
+            {t('install.iosStep2')}
+          </li>
+        </ol>
+      </Sheet>
+    </Section>
   )
 }
 
