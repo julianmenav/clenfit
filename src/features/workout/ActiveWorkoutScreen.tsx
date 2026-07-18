@@ -19,7 +19,9 @@ import { useActiveWorkoutStore } from '@/store/activeWorkout'
 import { useRestTimerStore } from '@/store/restTimer'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
 import { ExerciseCard } from './ExerciseCard'
+import { ExerciseHistorySheet } from './ExerciseHistorySheet'
 import { FinishWorkoutSheet, type FinishOptions } from './FinishWorkoutSheet'
+import { ReorderSheet } from './ReorderSheet'
 import { RestTimerBar } from './RestTimerBar'
 import { useTicker } from './useTicker'
 
@@ -40,6 +42,8 @@ export function ActiveWorkoutScreen() {
   const [removeIndex, setRemoveIndex] = useState<number | null>(null)
   const [finishOpen, setFinishOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [reorderOpen, setReorderOpen] = useState(false)
+  const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null)
 
   useTicker(1000, workout != null)
   useWakeLock(workout != null)
@@ -197,6 +201,9 @@ export function ActiveWorkoutScreen() {
               onRemoveLastSet={() => store.removeSet(uid, i, ex.sets.length - 1)}
               onSwap={() => setSwapIndex(i)}
               onRemove={() => setRemoveIndex(i)}
+              onReorder={workout.exercises.length > 1 ? () => setReorderOpen(true) : undefined}
+              onSetNotes={(notes) => store.setExerciseNotes(uid, i, notes)}
+              onShowHistory={() => setHistoryExerciseId(ex.exerciseId)}
             />
           ))}
         </div>
@@ -229,6 +236,19 @@ export function ActiveWorkoutScreen() {
           if (swapIndex !== null) store.swapExercise(uid, swapIndex, def)
           setSwapIndex(null)
         }}
+      />
+
+      <ExerciseHistorySheet
+        open={historyExerciseId !== null}
+        onOpenChange={(open) => !open && setHistoryExerciseId(null)}
+        exerciseId={historyExerciseId}
+      />
+
+      <ReorderSheet
+        open={reorderOpen}
+        onOpenChange={setReorderOpen}
+        exercises={workout.exercises}
+        onMove={(from, to) => store.moveExercise(uid, from, to)}
       />
 
       <ConfirmDialog

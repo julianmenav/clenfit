@@ -72,11 +72,13 @@ interface ActiveWorkoutState {
   addExercise: (uid: string, def: ExerciseDef) => void
   removeExercise: (uid: string, index: number) => void
   swapExercise: (uid: string, index: number, def: ExerciseDef) => void
+  moveExercise: (uid: string, from: number, to: number) => void
   addSet: (uid: string, exIndex: number) => void
   removeSet: (uid: string, exIndex: number, setIndex: number) => void
   updateSet: (uid: string, exIndex: number, setIndex: number, patch: Partial<SetEntry>) => void
   cycleSetType: (uid: string, exIndex: number, setIndex: number) => void
   setNotes: (uid: string, notes: string) => void
+  setExerciseNotes: (uid: string, exIndex: number, notes: string) => void
   finish: (uid: string, statsMap: Map<string, WithId<ExerciseStats>>) => FinishResult | null
   discard: (uid: string) => void
 }
@@ -147,6 +149,15 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             }),
           })),
 
+        moveExercise: (uid, from, to) =>
+          mutate(uid, (w) => {
+            if (from === to || to < 0 || to >= w.exercises.length) return w
+            const next = [...w.exercises]
+            const [moved] = next.splice(from, 1)
+            next.splice(to, 0, moved)
+            return { ...w, exercises: next.map((ex, i) => ({ ...ex, order: i })) }
+          }),
+
         addSet: (uid, exIndex) =>
           mutate(uid, (w) => ({
             ...w,
@@ -211,6 +222,14 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           })),
 
         setNotes: (uid, notes) => mutate(uid, (w) => ({ ...w, notes: notes || null })),
+
+        setExerciseNotes: (uid, exIndex, notes) =>
+          mutate(uid, (w) => ({
+            ...w,
+            exercises: w.exercises.map((ex, i) =>
+              i === exIndex ? { ...ex, notes: notes || null } : ex,
+            ),
+          })),
 
         finish: (uid, statsMap) => {
           const workout = get().workout

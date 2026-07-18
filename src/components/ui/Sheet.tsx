@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Drawer } from 'vaul'
+import { useKeyboardInset } from '@/lib/useKeyboardInset'
 
 /**
  * The app's standard bottom sheet (vaul): handle, scrim, 20 px corners.
@@ -19,6 +20,10 @@ export function Sheet({
   tall?: boolean
   children: ReactNode
 }) {
+  // vaul's own input repositioning is unreliable in iOS standalone PWAs;
+  // the keyboard inset below compensates instead.
+  const keyboardInset = useKeyboardInset(open)
+
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <Drawer.Portal>
@@ -27,7 +32,14 @@ export function Sheet({
           className={`fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-lg flex-col rounded-t-sheet bg-surface outline-none ${
             tall ? 'h-[92dvh]' : 'max-h-[92dvh]'
           }`}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          style={{
+            paddingBottom: keyboardInset > 0 ? 0 : 'env(safe-area-inset-bottom)',
+            ...(keyboardInset > 0 && {
+              bottom: keyboardInset,
+              height: tall ? `calc(100dvh - ${keyboardInset}px)` : undefined,
+              maxHeight: `calc(100dvh - ${keyboardInset}px)`,
+            }),
+          }}
         >
           <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-surface-2" />
           <Drawer.Title className="px-5 pt-3 text-lg font-semibold">{title}</Drawer.Title>

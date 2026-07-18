@@ -106,6 +106,9 @@ export function WorkoutDetailScreen() {
                 </li>
               ))}
             </ul>
+            {ex.notes && (
+              <p className="mt-2 rounded-card bg-surface-2 p-2 text-sm text-ink-2">{ex.notes}</p>
+            )}
           </section>
         ))}
       </div>

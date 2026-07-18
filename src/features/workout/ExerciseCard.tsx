@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { ArrowLeftRight, Minus, MoreVertical, Plus, Trash2, Trophy } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  History,
+  Minus,
+  MoreVertical,
+  Plus,
+  StickyNote,
+  Trash2,
+  Trophy,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ghostForSet } from '@/domain/ghosts'
 import type { ExerciseStats, SetEntry, WithId, WorkoutExercise } from '@/domain/types'
@@ -17,6 +27,9 @@ export function ExerciseCard({
   onRemoveLastSet,
   onSwap,
   onRemove,
+  onReorder,
+  onSetNotes,
+  onShowHistory,
 }: {
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
@@ -27,9 +40,14 @@ export function ExerciseCard({
   onRemoveLastSet: () => void
   onSwap: () => void
   onRemove: () => void
+  onReorder?: () => void
+  onSetNotes: (notes: string) => void
+  onShowHistory: () => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const showNotes = notesOpen || exercise.notes != null
 
   const best = stats?.prs.heaviestWeightKg?.value
   const bestReps = stats?.prs.mostReps?.value
@@ -44,7 +62,7 @@ export function ExerciseCard({
   return (
     <section className="rounded-card border border-hairline bg-surface p-3">
       <header className="flex items-start justify-between gap-2 pb-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate font-semibold">{exercise.exerciseName}</h2>
           {(best != null || bestReps != null) && (
             <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-3">
@@ -54,6 +72,15 @@ export function ExerciseCard({
             </p>
           )}
         </div>
+
+        <button
+          type="button"
+          aria-label={t('workout:lastPerformances.title')}
+          onClick={onShowHistory}
+          className="flex size-9 shrink-0 items-center justify-center rounded-card text-ink-3 active:bg-surface-2"
+        >
+          <History className="size-5" />
+        </button>
 
         <div className="relative shrink-0">
           <button
@@ -73,6 +100,20 @@ export function ExerciseCard({
                   label={t('workout:swapExercise')}
                   onClick={menuAction(onSwap)}
                 />
+                {!showNotes && (
+                  <MenuItem
+                    icon={<StickyNote className="size-4" />}
+                    label={t('workout:exerciseNotes.add')}
+                    onClick={menuAction(() => setNotesOpen(true))}
+                  />
+                )}
+                {onReorder && (
+                  <MenuItem
+                    icon={<ArrowUpDown className="size-4" />}
+                    label={t('workout:reorder.menuItem')}
+                    onClick={menuAction(onReorder)}
+                  />
+                )}
                 {exercise.sets.length > 1 && (
                   <MenuItem
                     icon={<Minus className="size-4" />}
@@ -116,6 +157,16 @@ export function ExerciseCard({
         <Plus className="size-4" />
         {t('workout:addSet')}
       </button>
+
+      {showNotes && (
+        <textarea
+          value={exercise.notes ?? ''}
+          onChange={(e) => onSetNotes(e.target.value)}
+          placeholder={t('workout:exerciseNotes.placeholder')}
+          rows={2}
+          className="mt-2 w-full resize-none rounded-card border border-hairline bg-surface-2 p-2.5 text-sm outline-none focus:border-accent"
+        />
+      )}
     </section>
   )
 }

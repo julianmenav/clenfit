@@ -15,6 +15,10 @@
   "rpe": "RPE",
   "notes": "Notas",
   "notesPlaceholder": "Notas del entrenamiento…",
+  "exerciseNotes": {
+    "add": "Añadir nota",
+    "placeholder": "Nota del ejercicio…"
+  },
   "finish": "Terminar",
   "discard": "Descartar entrenamiento",
   "discardConfirm": "¿Descartar este entrenamiento? Se perderán las series registradas.",
@@ -22,6 +26,15 @@
   "removeLastSet": "Quitar última serie",
   "removeExerciseConfirm": "¿Quitar «{{name}}» y sus series de este entrenamiento?",
   "swapExercise": "Cambiar ejercicio",
+  "lastPerformances": {
+    "title": "Últimas sesiones"
+  },
+  "reorder": {
+    "menuItem": "Reordenar ejercicios",
+    "title": "Reordenar ejercicios",
+    "moveUp": "Subir",
+    "moveDown": "Bajar"
+  },
   "similar": "Similares",
   "allExercises": "Todos los ejercicios",
   "emptyTitle": "Sin ejercicios todavía",
