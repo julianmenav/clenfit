@@ -31,6 +31,7 @@ function exercise(sets: SetEntry[]): WorkoutExercise {
     measurement: 'weight_reps',
     order: 0,
     slotIndex: null,
+    usesBodyweight: false,
     swappedFrom: null,
     restSeconds: null,
     notes: null,
@@ -147,6 +148,31 @@ describe('applySessionPrs', () => {
     expect(newPrs).toContain('heaviestWeightKg')
     expect(newPrs).toContain('best1RmEpley')
     expect(newPrs).toContain('best1RmBrzycki')
+  })
+})
+
+describe('récords con peso corporal', () => {
+  it('el peso corporal genera candidatos de volumen pero nunca de peso ni 1RM', () => {
+    const c = setCandidates(set({ reps: 10 }), 80)
+    expect(c.bestSetVolumeKg).toBe(800)
+    expect(c.mostReps).toBe(10)
+    expect(c.heaviestWeightKg).toBeUndefined()
+    expect(c.best1RmEpley).toBeUndefined()
+    expect(c.best1RmBrzycki).toBeUndefined()
+  })
+
+  it('sessionCandidates suma el volumen de sesión con peso corporal', () => {
+    const c = sessionCandidates([set({ reps: 10 }), set({ reps: 8 })], 80)
+    expect(c.bestSessionVolumeKg).toBe(800 + 640)
+  })
+
+  it('applySessionPrs solo aplica el peso corporal si el ejercicio lo usa', () => {
+    const bwExercise = { ...exercise([set({ reps: 10 })]), usesBodyweight: true }
+    const withBw = applySessionPrs(bwExercise, null, 'w1', '2026-07-11', 80)
+    expect(withBw.prs.bestSetVolumeKg?.value).toBe(800)
+
+    const withoutFlag = applySessionPrs(exercise([set({ reps: 10 })]), null, 'w1', '2026-07-11', 80)
+    expect(withoutFlag.prs.bestSetVolumeKg).toBeUndefined()
   })
 })
 

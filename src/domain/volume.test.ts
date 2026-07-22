@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countWorkingSets, setsByMuscle, setVolume, workoutVolume } from './volume'
+import { defUsesBodyweight, exerciseVolume, countWorkingSets, setsByMuscle, setVolume, workoutVolume } from './volume'
 import type { SetEntry, WorkoutExercise } from './types'
 
 function set(partial: Partial<SetEntry>): SetEntry {
@@ -24,6 +24,7 @@ function exercise(sets: SetEntry[], muscle = 'chest'): WorkoutExercise {
     measurement: 'weight_reps',
     order: 0,
     slotIndex: null,
+    usesBodyweight: false,
     swappedFrom: null,
     restSeconds: null,
     notes: null,
@@ -55,6 +56,34 @@ describe('volumen', () => {
     }
     expect(workoutVolume(w)).toBe(60 * 8 + 100 * 5)
     expect(countWorkingSets(w)).toBe(2)
+  })
+
+  it('el peso corporal sustituye la carga solo cuando la serie no tiene peso', () => {
+    expect(setVolume(set({ reps: 10 }), 80)).toBe(800)
+    expect(setVolume(set({ weightKg: 20, reps: 10 }), 80)).toBe(200)
+    expect(setVolume(set({ reps: 10, type: 'warmup' }), 80)).toBe(0)
+    expect(setVolume(set({ reps: 10, completed: false }), 80)).toBe(0)
+  })
+
+  it('exerciseVolume aplica el peso corporal solo si el ejercicio lo usa', () => {
+    const bw = { ...exercise([set({ reps: 10 })]), usesBodyweight: true }
+    expect(exerciseVolume(bw, 80)).toBe(800)
+    expect(exerciseVolume(exercise([set({ reps: 10 })]), 80)).toBe(0)
+    expect(exerciseVolume(bw, null)).toBe(0)
+  })
+
+  it('workoutVolume usa el peso corporal del entrenamiento', () => {
+    const w = {
+      exercises: [{ ...exercise([set({ reps: 10 })]), usesBodyweight: true }],
+      bodyWeightKg: 80,
+    }
+    expect(workoutVolume(w)).toBe(800)
+  })
+
+  it('defUsesBodyweight: solo bodyweight + reps_only', () => {
+    expect(defUsesBodyweight({ equipment: 'bodyweight', measurement: 'reps_only' })).toBe(true)
+    expect(defUsesBodyweight({ equipment: 'bodyweight', measurement: 'time_only' })).toBe(false)
+    expect(defUsesBodyweight({ equipment: 'barbell', measurement: 'reps_only' })).toBe(false)
   })
 
   it('series por grupo muscular excluye calentamientos', () => {

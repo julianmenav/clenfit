@@ -4,8 +4,10 @@ import { updateDoc } from 'firebase/firestore'
 import { Download, LogOut, Share, SquarePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
+import { NumericField } from '@/components/ui/NumericField'
 import { Sheet } from '@/components/ui/Sheet'
 import { userDoc } from '@/data/converters'
+import { formatKg, parseDecimal } from '@/lib/formatSet'
 import { useUserProfile } from '@/data/hooks'
 import type { OneRmFormula } from '@/domain/types'
 import { auth } from '@/lib/firebase'
@@ -92,6 +94,22 @@ export function SettingsScreen() {
           ]}
           onChange={(f) => update({ 'settings.oneRmFormula': f as OneRmFormula })}
         />
+      </Section>
+
+      <Section title={t('settings:bodyWeight.title')} help={t('settings:bodyWeight.help')}>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm">{t('settings:bodyWeight.label')}</span>
+          <div className="flex w-28 items-center gap-2">
+            <NumericField
+              ariaLabel={t('settings:bodyWeight.title')}
+              value={s.bodyWeightKg ?? null}
+              format={formatKg}
+              parse={parseDecimal}
+              onCommit={(v) => update({ 'settings.bodyWeightKg': v })}
+            />
+            <span className="text-sm text-ink-3">{t('common:units.kg')}</span>
+          </div>
+        </div>
       </Section>
 
       <InstallSection />

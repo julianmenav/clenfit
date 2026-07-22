@@ -8,6 +8,7 @@ const legacyExercise = {
   measurement: 'weight_reps',
   order: 0,
   slotIndex: null,
+  usesBodyweight: false,
   swappedFrom: null,
   restSeconds: null,
   sets: [],

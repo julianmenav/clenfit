@@ -10,6 +10,7 @@ import {
   startWorkout,
   type FinishResult,
 } from '@/data/workoutMutations'
+import { defUsesBodyweight } from '@/domain/volume'
 import type {
   ExerciseDef,
   ExerciseStats,
@@ -68,6 +69,7 @@ interface ActiveWorkoutState {
     name: string,
     routine?: WithId<Routine>,
     resolveDef?: (exerciseId: string) => ExerciseDef | undefined,
+    bodyWeightKg?: number | null,
   ) => void
   addExercise: (uid: string, def: ExerciseDef) => void
   removeExercise: (uid: string, index: number) => void
@@ -79,7 +81,11 @@ interface ActiveWorkoutState {
   cycleSetType: (uid: string, exIndex: number, setIndex: number) => void
   setNotes: (uid: string, notes: string) => void
   setExerciseNotes: (uid: string, exIndex: number, notes: string) => void
-  finish: (uid: string, statsMap: Map<string, WithId<ExerciseStats>>) => FinishResult | null
+  finish: (
+    uid: string,
+    statsMap: Map<string, WithId<ExerciseStats>>,
+    bodyWeightKg?: number | null,
+  ) => FinishResult | null
   discard: (uid: string) => void
 }
 
@@ -107,9 +113,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
           // an existing local wins: it is more recent than whatever is in Firestore
         },
 
-        start: (uid, name, routine, resolveDef) => {
+        start: (uid, name, routine, resolveDef, bodyWeightKg) => {
           if (get().workout) return
-          set({ workout: startWorkout(uid, name, routine, resolveDef) })
+          set({ workout: startWorkout(uid, name, routine, resolveDef, bodyWeightKg ?? null) })
         },
 
         addExercise: (uid, def) =>
@@ -138,6 +144,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
                 exerciseName: def.name,
                 muscle: def.muscle,
                 measurement: def.measurement,
+                usesBodyweight: defUsesBodyweight(def),
                 // the routine's original, if it came from one (and not re-swapped)
                 swappedFrom: ex.swappedFrom ?? (w.routineId ? ex.exerciseId : null),
                 sets: keepSets
@@ -231,11 +238,13 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
             ),
           })),
 
-        finish: (uid, statsMap) => {
+        finish: (uid, statsMap, bodyWeightKg) => {
           const workout = get().workout
           if (!workout) return null
           cancelPendingSave()
-          const result = finishWorkout(uid, workout, statsMap)
+          const merged =
+            bodyWeightKg !== undefined ? { ...workout, bodyWeightKg } : workout
+          const result = finishWorkout(uid, merged, statsMap)
           if (result) set({ workout: null })
           return result
         },

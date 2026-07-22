@@ -5,8 +5,12 @@ import type { ExerciseStats, PrType, SetEntry, WorkoutExercise } from './types'
 /** Candidate record values, by type. */
 export type PrCandidates = Partial<Record<PrType, number>>
 
-/** Candidates contributed by a single set (excluding the session record). */
-export function setCandidates(set: SetEntry): PrCandidates {
+/**
+ * Candidates contributed by a single set (excluding the session record).
+ * `bodyWeightKg` feeds only the volume records: weight and 1RM records stay
+ * strictly based on the explicit load of the set.
+ */
+export function setCandidates(set: SetEntry, bodyWeightKg?: number | null): PrCandidates {
   if (!isWorkingSet(set)) return {}
   const out: PrCandidates = {}
   if (set.reps != null && set.reps > 0) out.mostReps = set.reps
@@ -15,9 +19,10 @@ export function setCandidates(set: SetEntry): PrCandidates {
     if (set.reps != null && set.reps > 0) {
       out.best1RmEpley = epley(set.weightKg, set.reps)
       out.best1RmBrzycki = brzycki(set.weightKg, set.reps)
-      out.bestSetVolumeKg = setVolume(set)
     }
   }
+  const volume = setVolume(set, bodyWeightKg)
+  if (volume > 0) out.bestSetVolumeKg = volume
   return out
 }
 
@@ -33,9 +38,9 @@ export function mergeCandidates(...many: PrCandidates[]): PrCandidates {
 }
 
 /** Candidates from all sets of an exercise in the session (includes session volume). */
-export function sessionCandidates(sets: SetEntry[]): PrCandidates {
-  const merged = mergeCandidates(...sets.map(setCandidates))
-  const sessionVolume = sets.reduce((sum, s) => sum + setVolume(s), 0)
+export function sessionCandidates(sets: SetEntry[], bodyWeightKg?: number | null): PrCandidates {
+  const merged = mergeCandidates(...sets.map((s) => setCandidates(s, bodyWeightKg)))
+  const sessionVolume = sets.reduce((sum, s) => sum + setVolume(s, bodyWeightKg), 0)
   if (sessionVolume > 0) merged.bestSessionVolumeKg = sessionVolume
   return merged
 }
@@ -76,11 +81,15 @@ export function detectLiveSetPrs(
   set: SetEntry,
   priorSessionSets: SetEntry[],
   stats: StatsForPrs,
+  bodyWeightKg?: number | null,
 ): PrType[] {
   if (isBaselineSession(stats)) return []
-  const baseline = mergeCandidates(statsBaseline(stats), ...priorSessionSets.map(setCandidates))
+  const baseline = mergeCandidates(
+    statsBaseline(stats),
+    ...priorSessionSets.map((s) => setCandidates(s, bodyWeightKg)),
+  )
   delete baseline.bestSessionVolumeKg
-  const candidates = setCandidates(set)
+  const candidates = setCandidates(set, bodyWeightKg)
   return detectNewPrs(candidates, baseline)
 }
 
@@ -98,8 +107,10 @@ export function applySessionPrs(
   stats: StatsForPrs,
   workoutId: string,
   dateKey: string,
+  bodyWeightKg?: number | null,
 ): SessionPrResult {
-  const candidates = sessionCandidates(exercise.sets)
+  const bw = exercise.usesBodyweight ? (bodyWeightKg ?? null) : null
+  const candidates = sessionCandidates(exercise.sets, bw)
   const improved = detectNewPrs(candidates, statsBaseline(stats))
   const prs: ExerciseStats['prs'] = { ...(stats?.prs ?? {}) }
   for (const type of improved) {

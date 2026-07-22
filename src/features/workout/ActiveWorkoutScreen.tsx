@@ -3,9 +3,11 @@ import { Navigate } from 'react-router'
 import { CloudOff, Dumbbell, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { updateDoc } from 'firebase/firestore'
 import { useUser } from '@/app/AuthProvider'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { userDoc } from '@/data/converters'
 import { useAllExerciseStats, useUserProfile, useWorkoutHasPendingWrites } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { saveWorkoutAsRoutine, updateRoutineSlots } from '@/data/workoutMutations'
@@ -99,7 +101,10 @@ export function ActiveWorkoutScreen() {
       .filter((e) => e.exerciseId === ex.exerciseId)
       .flatMap((e) => e.sets.filter((s) => s.completed && s !== set))
     const stats = statsMap?.get(ex.exerciseId)
-    const prs = detectLiveSetPrs(merged, priorSets, stats)
+    const bodyWeightKg = ex.usesBodyweight
+      ? (workout.bodyWeightKg ?? profile?.settings.bodyWeightKg ?? null)
+      : null
+    const prs = detectLiveSetPrs(merged, priorSets, stats, bodyWeightKg)
     if (prs.length > 0) {
       const labels = [...new Set(prs.map((p) => t(`workout:pr.types.${prDisplayType(p)}`)))]
       toast.success(t('workout:pr.toast', { exercise: ex.exerciseName }), {
@@ -120,13 +125,20 @@ export function ActiveWorkoutScreen() {
   function confirmFinish(opts: FinishOptions) {
     if (!workout || !statsMap) return
     finishedIdRef.current = workout.id
-    const result = store.finish(uid, statsMap)
+    const result = store.finish(uid, statsMap, opts.bodyWeightKg)
     setFinishOpen(false)
     if (!result) {
       finishedIdRef.current = null
       return
     }
     useRestTimerStore.getState().stop()
+
+    // remember the entered body weight as the default for the next session
+    if (opts.bodyWeightKg != null && opts.bodyWeightKg !== (profile?.settings.bodyWeightKg ?? null)) {
+      updateDoc(userDoc(uid), { 'settings.bodyWeightKg': opts.bodyWeightKg }).catch((err) =>
+        console.error('[bodyWeight]', err),
+      )
+    }
 
     if (opts.saveAsRoutineName) {
       saveWorkoutAsRoutine(uid, result.workout, opts.saveAsRoutineName)

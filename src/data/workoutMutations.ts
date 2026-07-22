@@ -20,6 +20,7 @@ import {
   sessionCandidates,
   statsBaseline,
 } from '@/domain/prs'
+import { defUsesBodyweight } from '@/domain/volume'
 import { pruneIncomplete, summarizeWorkout } from '@/domain/workoutSummary'
 import type {
   ExerciseDef,
@@ -64,6 +65,7 @@ export function exerciseFromDef(
     exerciseName: def.name,
     muscle: def.muscle,
     measurement: def.measurement,
+    usesBodyweight: defUsesBodyweight(def),
     order,
     slotIndex: opts.slotIndex ?? null,
     swappedFrom: null,
@@ -82,6 +84,7 @@ export function startWorkout(
   name: string,
   routine?: WithId<Routine>,
   resolveDef?: (exerciseId: string) => ExerciseDef | undefined,
+  bodyWeightKg: number | null = null,
 ): WithId<Workout> {
   const exercises: WorkoutExercise[] = (routine?.slots ?? []).map((slot, i) => {
     const def = resolveDef?.(slot.exerciseId)
@@ -90,6 +93,7 @@ export function startWorkout(
       exerciseName: def?.name ?? slot.exerciseName,
       muscle: def?.muscle ?? 'chest',
       measurement: def?.measurement ?? 'weight_reps',
+      usesBodyweight: def ? defUsesBodyweight(def) : false,
       order: i,
       slotIndex: slot.order,
       swappedFrom: null,
@@ -108,6 +112,7 @@ export function startWorkout(
     durationSeconds: null,
     dateKey: toDateKey(new Date()),
     notes: null,
+    bodyWeightKg,
     exerciseIds: exercises.map((e) => e.exerciseId),
     exercises,
     totalVolumeKg: null,
@@ -151,7 +156,8 @@ export function finishWorkout(
   if (exercises.length === 0) return null
 
   const completedAt = Timestamp.now()
-  const totals = summarizeWorkout({ exercises })
+  const bodyWeightKg = active.bodyWeightKg ?? null
+  const totals = summarizeWorkout({ exercises, bodyWeightKg })
   const newPrsByExercise = new Map<string, PrType[]>()
 
   const batch = writeBatch(db)
@@ -159,7 +165,7 @@ export function finishWorkout(
 
   for (const ex of exercises) {
     const prev = statsMap.get(ex.exerciseId) ?? null
-    const { newPrs, prs } = applySessionPrs(ex, prev, active.id, active.dateKey)
+    const { newPrs, prs } = applySessionPrs(ex, prev, active.id, active.dateKey, bodyWeightKg)
     prCount += displayPrCount(newPrs)
     if (newPrs.length > 0) newPrsByExercise.set(ex.exerciseId, newPrs)
 

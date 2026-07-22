@@ -7,7 +7,9 @@ export interface WorkoutTotals {
   setsByMuscle: Record<string, number>
 }
 
-export function summarizeWorkout(workout: Pick<Workout, 'exercises'>): WorkoutTotals {
+export function summarizeWorkout(
+  workout: Pick<Workout, 'exercises'> & { bodyWeightKg?: number | null },
+): WorkoutTotals {
   return {
     totalVolumeKg: workoutVolume(workout),
     totalSets: countWorkingSets(workout),

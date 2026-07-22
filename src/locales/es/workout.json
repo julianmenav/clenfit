@@ -76,7 +76,9 @@
     "updateRoutineKeep": "Mantener rutina",
     "updateRoutineApply": "Actualizar rutina",
     "confirmFinish": "Terminar entrenamiento",
-    "incompleteSets": "Las series sin completar se descartarán."
+    "incompleteSets": "Las series sin completar se descartarán.",
+    "bodyWeight": "Tu peso corporal",
+    "bodyWeightHelp": "Necesario para el volumen de los ejercicios a peso corporal."
   },
   "resume": {
     "title": "Entrenamiento en curso",

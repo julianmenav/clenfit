@@ -142,6 +142,9 @@ export const workoutExerciseSchema = z.object({
   exerciseName: z.string(),
   muscle: z.enum(muscleGroups),
   measurement: z.enum(measurementTypes),
+  /** Reps-only bodyweight movement: the user's body weight substitutes the load.
+   *  Defaulted so docs written before the field parse. */
+  usesBodyweight: z.boolean().default(false),
   order: z.number().int(),
   /** Routine slot it occupies; allows proposing an update after a change. */
   slotIndex: z.number().int().nullable(),
@@ -162,6 +165,9 @@ export const workoutSchema = z.object({
   durationSeconds: z.number().int().nullable(),
   dateKey: z.string(),
   notes: z.string().nullable(),
+  /** Body-weight snapshot at session time (bodyweight exercise volume stays
+   *  correct when the user's weight changes). Defaulted for older docs. */
+  bodyWeightKg: z.number().nullable().default(null),
   /** Redundant with exercises[].exerciseId: makes array-contains + orderBy possible. */
   exerciseIds: z.array(z.string()),
   exercises: z.array(workoutExerciseSchema),
@@ -241,6 +247,8 @@ export const userSettingsSchema = z.object({
     defaultSeconds: z.number().int(),
   }),
   oneRmFormula: z.enum(oneRmFormulas),
+  /** Used as the load of bodyweight exercises. Defaulted for older docs. */
+  bodyWeightKg: z.number().nullable().default(null),
 })
 export type UserSettings = z.infer<typeof userSettingsSchema>
 
@@ -256,4 +264,5 @@ export const defaultSettings: UserSettings = {
   theme: 'system',
   restTimer: { enabled: true, defaultSeconds: 90 },
   oneRmFormula: 'epley',
+  bodyWeightKg: null,
 }

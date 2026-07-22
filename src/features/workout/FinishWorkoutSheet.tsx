@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { NumericField } from '@/components/ui/NumericField'
 import { Sheet } from '@/components/ui/Sheet'
+import { useUserProfile } from '@/data/hooks'
 import { summarizeWorkout, pruneIncomplete } from '@/domain/workoutSummary'
 import type { WithId, Workout } from '@/domain/types'
 import { formatDuration } from '@/lib/dates'
-import { formatKg } from '@/lib/formatSet'
+import { formatKg, parseDecimal } from '@/lib/formatSet'
 
 export interface FinishOptions {
   saveAsRoutineName: string | null
   updateRoutine: boolean
+  /** Body-weight snapshot to store on the workout (volume of bodyweight exercises). */
+  bodyWeightKg: number | null
 }
 
 /** Resumen previo al cierre: totales + guardar como rutina / actualizar rutina. */
@@ -24,18 +28,32 @@ export function FinishWorkoutSheet({
   onConfirm: (opts: FinishOptions) => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
+  const profile = useUserProfile()
   const [saveAsRoutine, setSaveAsRoutine] = useState(false)
   const [routineName, setRoutineName] = useState('')
   const [updateRoutine, setUpdateRoutine] = useState(false)
+  // undefined = untouched (fall back to the workout snapshot, then settings)
+  const [bodyWeightInput, setBodyWeightInput] = useState<number | null | undefined>(undefined)
 
   const pruned = useMemo(() => pruneIncomplete(workout.exercises), [workout.exercises])
-  const totals = useMemo(() => summarizeWorkout({ exercises: pruned }), [pruned])
+  const hasBodyweight = pruned.some((ex) => ex.usesBodyweight)
+  const bodyWeightKg =
+    bodyWeightInput !== undefined
+      ? bodyWeightInput
+      : (workout.bodyWeightKg ?? profile?.settings.bodyWeightKg ?? null)
+  const totals = useMemo(
+    () => summarizeWorkout({ exercises: pruned, bodyWeightKg }),
+    [pruned, bodyWeightKg],
+  )
   const incompleteCount =
     workout.exercises.reduce((n, ex) => n + ex.sets.filter((s) => !s.completed).length, 0)
   const hasSwaps = workout.routineId != null && workout.exercises.some((e) => e.swappedFrom)
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000 - workout.startedAt.seconds))
 
-  const canFinish = pruned.length > 0 && (!saveAsRoutine || routineName.trim().length > 0)
+  const canFinish =
+    pruned.length > 0 &&
+    (!saveAsRoutine || routineName.trim().length > 0) &&
+    (!hasBodyweight || bodyWeightKg != null)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t('workout:finishSheet.title')}>
@@ -53,6 +71,25 @@ export function FinishWorkoutSheet({
           <p className="rounded-card bg-status-warn/10 px-3 py-2 text-sm text-status-warn">
             {t('workout:finishSheet.incompleteSets')}
           </p>
+        )}
+
+        {hasBodyweight && (
+          <div className="rounded-card border border-hairline p-3">
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">{t('workout:finishSheet.bodyWeight')}</span>
+              <div className="flex w-28 items-center gap-2">
+                <NumericField
+                  ariaLabel={t('workout:finishSheet.bodyWeight')}
+                  value={bodyWeightKg}
+                  format={formatKg}
+                  parse={parseDecimal}
+                  onCommit={setBodyWeightInput}
+                />
+                <span className="text-sm text-ink-3">{t('common:units.kg')}</span>
+              </div>
+            </label>
+            <p className="mt-2 text-xs text-ink-3">{t('workout:finishSheet.bodyWeightHelp')}</p>
+          </div>
         )}
 
         {workout.routineId == null && pruned.length > 0 && (
@@ -97,6 +134,7 @@ export function FinishWorkoutSheet({
             onConfirm({
               saveAsRoutineName: saveAsRoutine ? routineName.trim() : null,
               updateRoutine,
+              bodyWeightKg: hasBodyweight ? bodyWeightKg : (workout.bodyWeightKg ?? null),
             })
           }
           className="h-12 rounded-card bg-accent font-semibold text-on-accent disabled:opacity-60"

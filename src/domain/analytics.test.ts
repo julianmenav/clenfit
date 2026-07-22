@@ -33,6 +33,7 @@ function workoutWithSets(sets: SetEntry[]): Pick<Workout, 'exercises'> {
         measurement: 'weight_reps',
         order: 0,
         slotIndex: null,
+        usesBodyweight: false,
         swappedFrom: null,
         restSeconds: null,
         notes: null,

@@ -18,6 +18,11 @@
     "brzycki": "Brzycki",
     "help": "Se usa para estimar tu repetición máxima a partir de tus series."
   },
+  "bodyWeight": {
+    "title": "Peso corporal",
+    "label": "Tu peso",
+    "help": "Se usa para calcular el volumen de los ejercicios a peso corporal (dominadas, fondos, flexiones…)."
+  },
   "account": "Cuenta",
   "signOut": "Cerrar sesión",
   "install": {
