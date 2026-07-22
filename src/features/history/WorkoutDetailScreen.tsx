@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, ArrowLeftRight, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, ChevronRight, Trash2, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -86,8 +86,13 @@ export function WorkoutDetailScreen() {
       <div className="flex flex-col gap-3">
         {workout.exercises.map((ex, i) => (
           <section key={i} className="rounded-card border border-hairline bg-surface p-3">
-            <Link to={`/ejercicios/${ex.exerciseId}`} className="font-semibold">
-              {ex.exerciseName}
+            <Link
+              to={`/ejercicios/${ex.exerciseId}`}
+              aria-label={t('history:viewExercise', { name: ex.exerciseName })}
+              className="-m-1 flex items-center gap-1 rounded-card p-1 font-semibold active:bg-surface-2"
+            >
+              <span className="min-w-0 truncate">{ex.exerciseName}</span>
+              <ChevronRight className="size-4 shrink-0 text-ink-3" />
             </Link>
             {ex.swappedFrom && (
               <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-3">

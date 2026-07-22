@@ -4,5 +4,6 @@
   "week": "Semana del {{date}}",
   "deleteConfirm": "¿Eliminar este entrenamiento? Se recalcularán tus récords.",
   "bestSet": "Mejor serie",
-  "swappedFrom": "Sustituye a {{name}}"
+  "swappedFrom": "Sustituye a {{name}}",
+  "viewExercise": "Ver ficha de {{name}}"
 }
