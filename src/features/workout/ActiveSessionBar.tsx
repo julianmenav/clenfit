@@ -23,8 +23,7 @@ export function ActiveSessionBar() {
     <button
       type="button"
       onClick={() => navigate('/entrenamiento')}
-      className="fixed inset-x-0 bottom-16 z-30 mx-auto flex h-12 w-full max-w-lg items-center gap-3 border-t border-hairline bg-surface-2/95 px-4 backdrop-blur lg:bottom-6 lg:left-auto lg:right-6 lg:w-80 lg:rounded-card lg:border"
-      style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+      className="mb-safe fixed inset-x-0 bottom-16 z-30 mx-auto flex h-12 w-full max-w-lg items-center gap-3 border-t border-hairline bg-surface-2/95 px-4 backdrop-blur lg:bottom-6 lg:left-auto lg:right-6 lg:w-80 lg:rounded-card lg:border"
       aria-label={t('resume.continue')}
     >
       <Dumbbell className="size-4 text-accent" />

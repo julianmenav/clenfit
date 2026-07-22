@@ -52,10 +52,7 @@ export function AppLayout() {
       <RestTimerWatcher />
       <PwaUpdatePrompt />
 
-      <main
-        className="w-full flex-1 pb-28 lg:col-start-2 lg:row-start-1 lg:pb-10 lg:pt-4"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
+      <main className="pt-safe w-full flex-1 pb-28 lg:col-start-2 lg:row-start-1 lg:pb-10 lg:pt-4">
         <OfflineBanner />
         <Outlet />
       </main>
@@ -75,8 +72,7 @@ export function AppLayout() {
 
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface/95 backdrop-blur lg:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface/95 backdrop-blur lg:hidden"
       >
         <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
           {tabs.slice(0, 2).map((tab) => (

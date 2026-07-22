@@ -43,3 +43,18 @@ body {
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* Safe-area insets (viewport-fit=cover): content renders under the notch /
+   Dynamic Island / home indicator unless it insets itself with these. */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+@utility top-safe {
+  top: env(safe-area-inset-top);
+}

@@ -24,8 +24,7 @@ export function OfflineBanner() {
   return (
     <div
       role="status"
-      className="sticky z-50 flex items-center justify-center gap-2 rounded-b-card bg-surface-2 py-1.5 text-xs text-ink-2"
-      style={{ top: 'env(safe-area-inset-top)' }}
+      className="top-safe sticky z-50 flex items-center justify-center gap-2 rounded-b-card bg-surface-2 py-1.5 text-xs text-ink-2"
     >
       <CloudOff className="size-3.5" />
       {t('net.offline')}

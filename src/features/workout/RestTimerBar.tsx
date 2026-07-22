@@ -18,7 +18,13 @@ export function RestTimerBar() {
   const progress = totalSeconds > 0 ? remaining / totalSeconds : 0
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-hairline bg-surface/95 px-4 py-2 backdrop-blur">
+    <div className="top-safe sticky z-20 -mx-4 mb-3 border-b border-hairline bg-surface/95 px-4 py-2 backdrop-blur">
+      {/* When stuck, cover the safe-area strip above so content doesn't scroll
+          visibly between the Dynamic Island and the bar. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-full h-[env(safe-area-inset-top)] bg-surface/95 backdrop-blur"
+      />
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-ink-2">{t('rest.title')}</span>
         <span className="tnum flex-1 text-center text-2xl font-bold">{formatClock(remaining)}</span>
