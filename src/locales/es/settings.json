@@ -23,6 +23,13 @@
     "label": "Tu peso",
     "help": "Se usa para calcular el volumen de los ejercicios a peso corporal (dominadas, fondos, flexiones…)."
   },
+  "data": {
+    "title": "Datos",
+    "recalcStats": "Recalcular récords y estadísticas",
+    "recalcHelp": "Reconstruye tus récords y últimas marcas a partir del historial. Úsalo si ves récords de sesiones eliminadas.",
+    "recalcRunning": "Recalculando…",
+    "recalcDone": "Estadísticas recalculadas"
+  },
   "account": "Cuenta",
   "signOut": "Cerrar sesión",
   "install": {

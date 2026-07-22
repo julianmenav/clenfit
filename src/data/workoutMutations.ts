@@ -13,13 +13,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { toDateKey } from '@/lib/dates'
-import {
-  applySessionPrs,
-  detectNewPrs,
-  displayPrCount,
-  sessionCandidates,
-  statsBaseline,
-} from '@/domain/prs'
+import { applySessionPrs, displayPrCount } from '@/domain/prs'
+import { rebuildAllStats, rebuildStatsForExercise } from '@/domain/statsRebuild'
 import { defUsesBodyweight } from '@/domain/volume'
 import { pruneIncomplete, summarizeWorkout } from '@/domain/workoutSummary'
 import type {
@@ -34,6 +29,7 @@ import type {
   WorkoutExercise,
 } from '@/domain/types'
 import {
+  exerciseStatsCol,
   exerciseStatsDoc,
   routineDoc,
   routinesCol,
@@ -240,13 +236,26 @@ export function updateRoutineSlots(uid: string, routineId: string, workout: Work
   })
 }
 
+export interface RecomputeOptions {
+  /** Drop this doc from the query result (a just-deleted workout can still be in cache). */
+  excludeWorkoutId?: string
+  /** Use this version of the doc instead of the (possibly stale) queried one. */
+  overrideWorkout?: WithId<Workout>
+}
+
 /**
  * Rebuilds an exercise's exerciseStats by walking its full history.
  * Used after deleting/editing a past workout (the denormalized stats go stale).
  * Offline, getDocs falls back to the local cache (warm via the history
- * listener); a partial cache self-heals on the next recompute.
+ * listener); a partial cache self-heals on the next recompute. Because pending
+ * deletes/writes may not be visible to the query yet, callers pass the change
+ * via `opts` instead of awaiting the write (which offline never settles).
  */
-export async function recomputeExerciseStats(uid: string, exerciseId: string): Promise<void> {
+export async function recomputeExerciseStats(
+  uid: string,
+  exerciseId: string,
+  opts: RecomputeOptions = {},
+): Promise<void> {
   const snap = await getDocs(
     query(
       workoutsCol(uid),
@@ -255,37 +264,32 @@ export async function recomputeExerciseStats(uid: string, exerciseId: string): P
       orderBy('startedAt', 'asc'),
     ),
   )
-  const sessions = snap.docs.map((d) => d.data())
-
-  const statsRef = exerciseStatsDoc(uid, exerciseId)
-  if (sessions.length === 0) {
-    deleteDoc(statsRef).catch((err) => console.error('[recomputeExerciseStats]', err))
-    return
+  const override = opts.overrideWorkout
+  const sessions = snap.docs
+    .map((d) => d.data())
+    .filter((w) => w.id !== opts.excludeWorkoutId && w.id !== override?.id)
+  if (
+    override?.status === 'completed' &&
+    override.exercises.some((e) => e.exerciseId === exerciseId)
+  ) {
+    sessions.push(override)
+    sessions.sort(
+      (a, b) =>
+        a.startedAt.seconds - b.startedAt.seconds || a.startedAt.nanoseconds - b.startedAt.nanoseconds,
+    )
   }
 
-  let prs: ExerciseStats['prs'] = {}
-  let exerciseName = ''
-  let last: ExerciseStats['lastPerformance'] = null
-
-  for (const w of sessions) {
-    for (const ex of w.exercises.filter((e) => e.exerciseId === exerciseId)) {
-      exerciseName = ex.exerciseName
-      const candidates = sessionCandidates(ex.sets)
-      const newTypes = detectNewPrs(candidates, statsBaseline({ prs }))
-      for (const type of newTypes) {
-        prs = { ...prs, [type]: { value: candidates[type]!, workoutId: w.id, dateKey: w.dateKey } }
-      }
-      last = { workoutId: w.id, dateKey: w.dateKey, sets: ex.sets }
-    }
+  const statsRef = exerciseStatsDoc(uid, exerciseId)
+  const rebuilt = rebuildStatsForExercise(sessions, exerciseId)
+  if (!rebuilt) {
+    deleteDoc(statsRef).catch((err) => console.error('[recomputeExerciseStats]', err))
+    return
   }
 
   const stats: WithId<ExerciseStats> = {
     id: exerciseId,
     exerciseId,
-    exerciseName,
-    lastPerformance: last,
-    prs,
-    totalSessions: sessions.length,
+    ...rebuilt,
     updatedAt: Timestamp.now(),
   }
   setDoc(statsRef, stats).catch((err) => console.error('[recomputeExerciseStats]', err))
@@ -295,7 +299,48 @@ export async function recomputeExerciseStats(uid: string, exerciseId: string): P
 export async function deleteCompletedWorkout(uid: string, workout: WithId<Workout>): Promise<void> {
   deleteWorkout(uid, workout.id).catch((err) => console.error('[deleteCompletedWorkout]', err))
   const unique = [...new Set(workout.exerciseIds)]
-  await Promise.all(unique.map((exerciseId) => recomputeExerciseStats(uid, exerciseId)))
+  await Promise.all(
+    unique.map((exerciseId) =>
+      recomputeExerciseStats(uid, exerciseId, { excludeWorkoutId: workout.id }),
+    ),
+  )
+}
+
+/**
+ * Full repair: rebuilds every exerciseStats doc from the completed history and
+ * deletes orphaned ones (e.g. records left behind by an old deletion bug).
+ * Writes are chunked and not awaited (offline they stay queued).
+ */
+export async function recomputeAllExerciseStats(
+  uid: string,
+): Promise<{ rebuilt: number; removed: number }> {
+  const [workoutsSnap, statsSnap] = await Promise.all([
+    getDocs(query(workoutsCol(uid), where('status', '==', 'completed'), orderBy('startedAt', 'asc'))),
+    getDocs(exerciseStatsCol(uid)),
+  ])
+  const rebuilt = rebuildAllStats(workoutsSnap.docs.map((d) => d.data()))
+  const updatedAt = Timestamp.now()
+
+  const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = []
+  for (const [exerciseId, stats] of rebuilt) {
+    ops.push((batch) =>
+      batch.set(exerciseStatsDoc(uid, exerciseId), { id: exerciseId, exerciseId, ...stats, updatedAt }),
+    )
+  }
+  let removed = 0
+  for (const d of statsSnap.docs) {
+    if (!rebuilt.has(d.id)) {
+      removed += 1
+      ops.push((batch) => batch.delete(d.ref))
+    }
+  }
+
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = writeBatch(db)
+    for (const op of ops.slice(i, i + 400)) op(batch)
+    batch.commit().catch((err) => console.error('[recomputeAllExerciseStats]', err))
+  }
+  return { rebuilt: rebuilt.size, removed }
 }
 
 /** Reference usable for one-off routine updates (editor). */

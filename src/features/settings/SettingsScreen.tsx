@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { updateDoc } from 'firebase/firestore'
-import { Download, LogOut, Share, SquarePlus } from 'lucide-react'
+import { Check, Download, LogOut, RefreshCw, Share, SquarePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { NumericField } from '@/components/ui/NumericField'
@@ -9,6 +9,7 @@ import { Sheet } from '@/components/ui/Sheet'
 import { userDoc } from '@/data/converters'
 import { formatKg, parseDecimal } from '@/lib/formatSet'
 import { useUserProfile } from '@/data/hooks'
+import { recomputeAllExerciseStats } from '@/data/workoutMutations'
 import type { OneRmFormula } from '@/domain/types'
 import { auth } from '@/lib/firebase'
 import { isIos, isStandalone, promptInstall, useCanPromptInstall } from '@/lib/installPrompt'
@@ -114,6 +115,8 @@ export function SettingsScreen() {
 
       <InstallSection />
 
+      <DataSection />
+
       <Section title={t('settings:account')}>
         <p className="pb-3 text-sm text-ink-2">{user.email}</p>
         <button
@@ -126,6 +129,46 @@ export function SettingsScreen() {
         </button>
       </Section>
     </div>
+  )
+}
+
+/** Maintenance: full rebuild of exerciseStats from the completed history. */
+function DataSection() {
+  const user = useUser()
+  const { t } = useTranslation('settings')
+  const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
+
+  async function recalc() {
+    setState('running')
+    try {
+      await recomputeAllExerciseStats(user.uid)
+      setState('done')
+    } catch (err) {
+      console.error('[recalcStats]', err)
+      setState('idle')
+    }
+  }
+
+  return (
+    <Section title={t('data.title')} help={t('data.recalcHelp')}>
+      <button
+        type="button"
+        disabled={state === 'running'}
+        onClick={() => void recalc()}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-card bg-surface-2 font-medium disabled:opacity-60"
+      >
+        {state === 'done' ? (
+          <Check className="size-4 text-accent" />
+        ) : (
+          <RefreshCw className={cn('size-4', state === 'running' && 'animate-spin')} />
+        )}
+        {state === 'running'
+          ? t('data.recalcRunning')
+          : state === 'done'
+            ? t('data.recalcDone')
+            : t('data.recalcStats')}
+      </button>
+    </Section>
   )
 }
 
