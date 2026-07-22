@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartPie, Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import { ChartPie } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { startOfWeek, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
@@ -20,19 +20,18 @@ import { useCompletedWorkouts } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import {
   bucketedTotals,
-  compareWeeks,
   muscleBalance,
   muscleSetBreakdown,
   repRangeDistribution,
   type BalanceGroup,
   type MuscleSetBreakdown,
   type RepRange,
-  type WeekTotals,
 } from '@/domain/analytics'
 import { muscleGroups, type WithId, type Workout } from '@/domain/types'
 import { formatShortDate, toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { OneRmProgressionCard } from './OneRmProgressionCard'
+import { WeeklySummaryCard } from './WeeklySummaryCard'
 
 type RangeKey = '1w' | '4w' | '3m' | '1y' | 'all'
 const rangeDays: Record<RangeKey, number | null> = {
@@ -70,7 +69,7 @@ export function AnalyticsScreen() {
     <div className="flex flex-col gap-5 px-4 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">{t('analytics:title')}</h1>
 
-      <WeeklySummary workouts={workouts} />
+      <WeeklySummaryCard workouts={workouts} />
 
       <div className="flex gap-1.5">
         {(Object.keys(rangeDays) as RangeKey[]).map((k) => (
@@ -97,55 +96,6 @@ export function AnalyticsScreen() {
         </>
       )}
     </div>
-  )
-}
-
-/** This calendar week (Monday start) vs the previous one, with trend arrows. */
-function WeeklySummary({ workouts }: { workouts: WithId<Workout>[] }) {
-  const { t } = useTranslation(['analytics', 'common'])
-
-  const { current, previous } = useMemo(() => {
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-    return compareWeeks(workouts, toDateKey(weekStart), toDateKey(subDays(weekStart, 7)))
-  }, [workouts])
-
-  const stats: { label: string; pick: (w: WeekTotals) => number; kg?: boolean }[] = [
-    { label: t('analytics:weekly.workouts'), pick: (w) => w.workouts },
-    { label: t('analytics:weekly.sets'), pick: (w) => w.sets },
-    { label: t('analytics:weekly.volume'), pick: (w) => w.volumeKg, kg: true },
-  ]
-
-  return (
-    <Card title={t('analytics:weekly.title')}>
-      <div className="grid grid-cols-3 gap-2">
-        {stats.map(({ label, pick, kg }) => {
-          const now = pick(current)
-          const before = pick(previous)
-          const delta = before > 0 ? Math.round(((now - before) / before) * 100) : null
-          const Icon = delta == null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown
-          const tone =
-            delta == null || delta === 0
-              ? 'text-ink-3'
-              : delta > 0
-                ? 'text-status-ok'
-                : 'text-status-over'
-          return (
-            <div key={label} className="rounded-card bg-surface-2 p-2.5">
-              <p className="text-xs text-ink-3">{label}</p>
-              <p className="tnum mt-0.5 text-lg font-bold">
-                {kg ? formatKg(now) : now}
-                {kg && <span className="text-xs font-medium text-ink-3"> {t('common:units.kg')}</span>}
-              </p>
-              <p className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${tone}`}>
-                <Icon className="size-3.5" />
-                {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta}%`}
-              </p>
-            </div>
-          )
-        })}
-      </div>
-      <p className="pt-2 text-xs text-ink-3">{t('analytics:weekly.vsPrevWeek')}</p>
-    </Card>
   )
 }
 

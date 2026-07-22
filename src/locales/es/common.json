@@ -33,6 +33,7 @@
     "retry": "Reintentar"
   },
   "home": {
+    "last8Weeks": "Últimas 8 semanas",
     "startWorkout": "Empezar entrenamiento",
     "freeWorkout": "Entrenamiento libre",
     "resumeWorkout": "Continuar entrenamiento",
