@@ -9,6 +9,7 @@ import { HomeScreen } from '@/features/dashboard/HomeScreen'
 import { ActiveWorkoutScreen } from '@/features/workout/ActiveWorkoutScreen'
 import { HistoryScreen } from '@/features/history/HistoryScreen'
 import { WorkoutDetailScreen } from '@/features/history/WorkoutDetailScreen'
+import { WorkoutEditorScreen } from '@/features/history/WorkoutEditorScreen'
 import { LibraryScreen } from '@/features/exercises/LibraryScreen'
 import { ExerciseDetailScreen } from '@/features/exercises/ExerciseDetailScreen'
 import { RoutinesScreen } from '@/features/routines/RoutinesScreen'
@@ -39,7 +40,9 @@ export const router = createBrowserRouter([
               { path: '/', element: <HomeScreen /> },
               { path: '/entrenamiento', element: <ActiveWorkoutScreen /> },
               { path: '/historial', element: <HistoryScreen /> },
+              { path: '/historial/nuevo', element: <WorkoutEditorScreen /> },
               { path: '/historial/:workoutId', element: <WorkoutDetailScreen /> },
+              { path: '/historial/:workoutId/editar', element: <WorkoutEditorScreen /> },
               { path: '/ejercicios', element: <LibraryScreen /> },
               { path: '/ejercicios/:exerciseId', element: <ExerciseDetailScreen /> },
               { path: '/rutinas', element: <RoutinesScreen /> },

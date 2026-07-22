@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, ArrowLeftRight, ChevronRight, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, ChevronRight, Pencil, Trash2, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -54,6 +54,13 @@ export function WorkoutDetailScreen() {
           <h1 className="truncate text-xl font-bold">{workout.name}</h1>
           <p className="text-xs text-ink-3">{formatDay(new Date(workout.dateKey))}</p>
         </div>
+        <Link
+          to={`/historial/${workout.id}/editar`}
+          aria-label={t('common:actions.edit')}
+          className="flex size-10 items-center justify-center rounded-card border border-hairline text-ink-2"
+        >
+          <Pencil className="size-4" />
+        </Link>
         <button
           type="button"
           aria-label={t('common:actions.delete')}

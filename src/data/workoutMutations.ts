@@ -16,6 +16,7 @@ import { toDateKey } from '@/lib/dates'
 import { applySessionPrs, displayPrCount } from '@/domain/prs'
 import { rebuildAllStats, rebuildStatsForExercise } from '@/domain/statsRebuild'
 import { defUsesBodyweight } from '@/domain/volume'
+import { normalizeEditedSets } from '@/domain/workoutEdit'
 import { pruneIncomplete, summarizeWorkout } from '@/domain/workoutSummary'
 import type {
   ExerciseDef,
@@ -126,6 +127,44 @@ export function startWorkout(
 /** Syncs the full active doc (called by the store with debounce). */
 export function saveWorkout(uid: string, workout: WithId<Workout>): Promise<void> {
   return setDoc(workoutDoc(uid, workout.id), workout)
+}
+
+/** Client-generated id for a workout created outside a live session. */
+export function newWorkoutId(uid: string): string {
+  return doc(workoutsCol(uid)).id
+}
+
+/**
+ * Writes an edited (or retroactively created) completed workout and rebuilds
+ * the stats of every exercise involved — removed ones included. The edited doc
+ * is injected into the rebuild via `overrideWorkout` so the (possibly stale)
+ * cached copy never wins. `prCount` is set to null: attributing records
+ * historically would require replaying the whole timeline.
+ */
+export async function saveEditedWorkout(
+  uid: string,
+  edited: WithId<Workout>,
+  previousExerciseIds: string[],
+): Promise<void> {
+  const exercises = normalizeEditedSets(edited.exercises)
+  const totals = summarizeWorkout({ exercises, bodyWeightKg: edited.bodyWeightKg ?? null })
+  const workout: WithId<Workout> = {
+    ...edited,
+    status: 'completed',
+    exercises,
+    exerciseIds: exercises.map((e) => e.exerciseId),
+    ...totals,
+    prCount: null,
+  }
+  setDoc(workoutDoc(uid, workout.id), workout).catch((err) =>
+    console.error('[saveEditedWorkout]', err),
+  )
+  const affected = [...new Set([...previousExerciseIds, ...workout.exerciseIds])]
+  await Promise.all(
+    affected.map((exerciseId) =>
+      recomputeExerciseStats(uid, exerciseId, { overrideWorkout: workout }),
+    ),
+  )
 }
 
 export function deleteWorkout(uid: string, workoutId: string): Promise<void> {

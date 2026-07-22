@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { CalendarDays, Trophy } from 'lucide-react'
+import { CalendarDays, Plus, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { startOfWeek } from 'date-fns'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -20,7 +20,16 @@ export function HistoryScreen() {
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-6">
-      <h1 className="text-2xl font-bold tracking-tight">{t('history:title')}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">{t('history:title')}</h1>
+        <Link
+          to="/historial/nuevo"
+          aria-label={t('history:editor.addPast')}
+          className="flex size-10 items-center justify-center rounded-card border border-hairline text-ink-2 active:bg-surface-2"
+        >
+          <Plus className="size-5" />
+        </Link>
+      </div>
 
       {workouts.length === 0 ? (
         <EmptyState icon={CalendarDays} title={t('history:empty')} />

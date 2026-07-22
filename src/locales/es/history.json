@@ -5,5 +5,17 @@
   "deleteConfirm": "¿Eliminar este entrenamiento? Se recalcularán tus récords.",
   "bestSet": "Mejor serie",
   "swappedFrom": "Sustituye a {{name}}",
-  "viewExercise": "Ver ficha de {{name}}"
+  "viewExercise": "Ver ficha de {{name}}",
+  "editor": {
+    "titleNew": "Registrar entrenamiento",
+    "titleEdit": "Editar entrenamiento",
+    "defaultName": "Entrenamiento",
+    "addPast": "Registrar un entrenamiento pasado",
+    "name": "Nombre",
+    "date": "Fecha",
+    "startTime": "Hora de inicio",
+    "duration": "Duración (min)",
+    "needsData": "Añade al menos una serie con datos.",
+    "statsNote": "Al guardar se recalcularán tus récords y estadísticas."
+  }
 }
