@@ -1,10 +1,18 @@
 {
   "title": "Análisis",
   "setsPerMuscle": "Series por grupo muscular",
+  "setsPerMuscleCard": {
+    "direct": "Directas",
+    "indirect": "Indirectas",
+    "topExercises": "Ejercicios frecuentes",
+    "help": "Las series indirectas (músculo secundario) cuentan la mitad."
+  },
   "distribution": "Distribución muscular",
   "frequency": "Frecuencia de entrenamiento",
   "volumeTrend": "Volumen por semana",
+  "volumeTrendDaily": "Volumen por día",
   "range": {
+    "1w": "7 días",
     "4w": "4 sem",
     "3m": "3 meses",
     "1y": "1 año",

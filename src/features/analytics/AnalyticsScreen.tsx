@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -16,21 +17,34 @@ import { startOfWeek, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useCompletedWorkouts } from '@/data/hooks'
+import { useExerciseIndex } from '@/data/exerciseIndex'
 import {
+  bucketedTotals,
   compareWeeks,
   muscleBalance,
+  muscleSetBreakdown,
   repRangeDistribution,
   type BalanceGroup,
+  type MuscleSetBreakdown,
   type RepRange,
   type WeekTotals,
 } from '@/domain/analytics'
-import { muscleGroups, type MuscleGroup, type WithId, type Workout } from '@/domain/types'
+import { muscleGroups, type WithId, type Workout } from '@/domain/types'
 import { formatShortDate, toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { OneRmProgressionCard } from './OneRmProgressionCard'
 
-type RangeKey = '4w' | '3m' | '1y' | 'all'
-const rangeDays: Record<RangeKey, number | null> = { '4w': 28, '3m': 91, '1y': 365, all: null }
+type RangeKey = '1w' | '4w' | '3m' | '1y' | 'all'
+const rangeDays: Record<RangeKey, number | null> = {
+  '1w': 7,
+  '4w': 28,
+  '3m': 91,
+  '1y': 365,
+  all: null,
+}
+
+const weekStartKey = (dateKey: string) =>
+  toDateKey(startOfWeek(new Date(dateKey), { weekStartsOn: 1 }))
 
 export function AnalyticsScreen() {
   const { t } = useTranslation(['analytics', 'exercises', 'common'])
@@ -77,8 +91,9 @@ export function AnalyticsScreen() {
           <SetsPerMuscle workouts={filtered} />
           <MuscleBalance workouts={filtered} />
           <RepRanges workouts={filtered} />
-          <VolumeTrend workouts={filtered} />
-          <Frequency workouts={filtered} />
+          <VolumeTrend workouts={filtered} daily={range === '1w'} />
+          {/* workouts-per-week is meaningless inside a single week */}
+          {range !== '1w' && <Frequency workouts={filtered} />}
         </>
       )}
     </div>
@@ -190,31 +205,66 @@ function BarList({ rows, total }: { rows: { label: string; value: number }[]; to
   )
 }
 
-/** Effective sets per muscle group in the range (horizontal bar, single tone). */
+interface MuscleRow {
+  muscle: string
+  direct: number
+  indirect: number
+  total: number
+  topExercises: MuscleSetBreakdown['topExercises']
+  /* Recharts skips labels on zero-width rects and misindexes custom label
+     content, so each stack segment gets a precomputed end label: the total on
+     whichever segment is the last non-empty one, '' elsewhere. */
+  directEndLabel: string
+  stackEndLabel: string
+}
+
+/** Direct (primary muscle) + indirect (secondary, ×0.5) sets, stacked per muscle. */
 function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
   const { t } = useTranslation(['analytics', 'exercises'])
+  const { byId } = useExerciseIndex()
 
   const data = useMemo(() => {
-    const totals = new Map<MuscleGroup, number>()
-    for (const w of workouts) {
-      for (const [m, n] of Object.entries(w.setsByMuscle ?? {})) {
-        totals.set(m as MuscleGroup, (totals.get(m as MuscleGroup) ?? 0) + n)
-      }
-    }
+    const breakdown = muscleSetBreakdown(workouts, (id) => byId.get(id)?.secondaryMuscles ?? [])
     return muscleGroups
-      .filter((m) => (totals.get(m) ?? 0) > 0)
-      .map((m) => ({ muscle: t(`exercises:muscle.${m}`), sets: totals.get(m)! }))
-      .sort((a, b) => b.sets - a.sets)
-  }, [workouts, t])
+      .filter((m) => breakdown.has(m))
+      .map((m): MuscleRow => {
+        const b = breakdown.get(m)!
+        const total = b.direct + b.indirect
+        return {
+          muscle: t(`exercises:muscle.${m}`),
+          direct: b.direct,
+          indirect: b.indirect,
+          total,
+          topExercises: b.topExercises,
+          directEndLabel: b.indirect === 0 ? formatKg(total) : '',
+          stackEndLabel: b.indirect > 0 ? formatKg(total) : '',
+        }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [workouts, byId, t])
 
   if (data.length === 0) return null
   const height = Math.max(120, data.length * 34 + 30)
 
   return (
     <Card title={t('analytics:setsPerMuscle')}>
+      <div className="flex items-center gap-4 pb-2 text-xs text-ink-2">
+        <span className="flex items-center gap-1.5">
+          <span aria-hidden className="size-2.5 rounded-full bg-accent" />
+          {t('analytics:setsPerMuscleCard.direct')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="size-2.5 rounded-full"
+            style={{ background: 'var(--cat-1)' }}
+          />
+          {t('analytics:setsPerMuscleCard.indirect')}
+        </span>
+      </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 28, bottom: 0, left: 0 }}>
+          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 34, bottom: 0, left: 0 }}>
             <XAxis type="number" hide />
             <YAxis
               type="category"
@@ -224,36 +274,109 @@ function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
               axisLine={false}
               tickLine={false}
             />
-            <Tooltip cursor={{ fill: 'var(--surface-2)' }} content={<SimpleTooltip unit="" />} />
+            <Tooltip cursor={{ fill: 'var(--surface-2)' }} content={<MuscleTooltip />} />
             <Bar
-              dataKey="sets"
+              dataKey="direct"
+              stackId="m"
               fill="var(--accent)"
+              barSize={18}
+              stroke="var(--surface)"
+              strokeWidth={1}
+            >
+              <LabelList
+                dataKey="directEndLabel"
+                position="right"
+                fill="var(--ink-2)"
+                fontSize={11}
+              />
+            </Bar>
+            <Bar
+              dataKey="indirect"
+              stackId="m"
+              fill="var(--cat-1)"
               radius={[0, 4, 4, 0]}
               barSize={18}
-              label={{ position: 'right', fill: 'var(--ink-2)', fontSize: 11 }}
-            />
+              stroke="var(--surface)"
+              strokeWidth={1}
+            >
+              <LabelList
+                dataKey="stackEndLabel"
+                position="right"
+                fill="var(--ink-2)"
+                fontSize={11}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <p className="pt-1 text-xs text-ink-3">{t('analytics:setsPerMuscleCard.help')}</p>
     </Card>
   )
 }
 
-/** Total volume per week (line, single tone). */
-function VolumeTrend({ workouts }: { workouts: WithId<Workout>[] }) {
+function MuscleTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: { payload: MuscleRow }[]
+}) {
+  const { t } = useTranslation('analytics')
+  if (!active || !payload?.length) return null
+  const row = payload[0].payload
+  return (
+    <div className="max-w-56 rounded-card border border-hairline bg-surface-2 px-3 py-2 text-xs">
+      <div className="font-semibold text-ink">{row.muscle}</div>
+      <div className="tnum mt-0.5 text-ink-2">
+        {t('setsPerMuscleCard.direct')} {formatKg(row.direct)} ·{' '}
+        {t('setsPerMuscleCard.indirect')} {formatKg(row.indirect)}
+      </div>
+      {row.topExercises.length > 0 && (
+        <>
+          <div className="mt-1.5 text-ink-3">{t('setsPerMuscleCard.topExercises')}</div>
+          <ul className="mt-0.5 flex flex-col gap-0.5 text-ink-2">
+            {row.topExercises.map((e) => (
+              <li key={e.exerciseId} className="flex justify-between gap-3">
+                <span className="min-w-0 truncate">{e.exerciseName}</span>
+                <span className="tnum shrink-0">{formatKg(e.sets)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Total volume per week — or per day when viewing the 7-day range. */
+function VolumeTrend({ workouts, daily }: { workouts: WithId<Workout>[]; daily: boolean }) {
   const { t } = useTranslation(['analytics', 'common'])
 
-  const data = useMemo(() => weeklyTotals(workouts, (w) => w.totalVolumeKg ?? 0), [workouts])
+  const data = useMemo(() => {
+    const totals = bucketedTotals(
+      workouts,
+      (w) => w.totalVolumeKg ?? 0,
+      daily ? 'day' : 'week',
+      weekStartKey,
+    )
+    if (!daily) return totals
+    // a 7-point series with holes reads badly: zero-fill the window
+    const byDay = new Map(totals.map((d) => [d.bucket, d.value]))
+    return Array.from({ length: 7 }, (_, i) => {
+      const bucket = toDateKey(subDays(new Date(), 6 - i))
+      return { bucket, value: byDay.get(bucket) ?? 0 }
+    })
+  }, [workouts, daily])
   if (data.length < 2) return null
 
   return (
-    <Card title={t('analytics:volumeTrend')}>
+    <Card title={daily ? t('analytics:volumeTrendDaily') : t('analytics:volumeTrend')}>
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -8 }}>
             <CartesianGrid stroke="var(--hairline)" vertical={false} />
             <XAxis
-              dataKey="week"
+              dataKey="bucket"
               tickFormatter={(d: string) => formatShortDate(new Date(d))}
               tick={{ fill: 'var(--ink-3)', fontSize: 11 }}
               axisLine={{ stroke: 'var(--hairline)' }}
@@ -289,7 +412,10 @@ function VolumeTrend({ workouts }: { workouts: WithId<Workout>[] }) {
 function Frequency({ workouts }: { workouts: WithId<Workout>[] }) {
   const { t } = useTranslation('analytics')
 
-  const data = useMemo(() => weeklyTotals(workouts, () => 1), [workouts])
+  const data = useMemo(
+    () => bucketedTotals(workouts, () => 1, 'week', weekStartKey),
+    [workouts],
+  )
   if (data.length < 2) return null
 
   return (
@@ -299,7 +425,7 @@ function Frequency({ workouts }: { workouts: WithId<Workout>[] }) {
           <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -24 }}>
             <CartesianGrid stroke="var(--hairline)" vertical={false} />
             <XAxis
-              dataKey="week"
+              dataKey="bucket"
               tickFormatter={(d: string) => formatShortDate(new Date(d))}
               tick={{ fill: 'var(--ink-3)', fontSize: 11 }}
               axisLine={{ stroke: 'var(--hairline)' }}
@@ -321,20 +447,6 @@ function Frequency({ workouts }: { workouts: WithId<Workout>[] }) {
   )
 }
 
-function weeklyTotals(
-  workouts: WithId<Workout>[],
-  pick: (w: WithId<Workout>) => number,
-): { week: string; value: number }[] {
-  const map = new Map<string, number>()
-  for (const w of workouts) {
-    const week = toDateKey(startOfWeek(new Date(w.dateKey), { weekStartsOn: 1 }))
-    map.set(week, (map.get(week) ?? 0) + pick(w))
-  }
-  return [...map.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([week, value]) => ({ week, value }))
-}
-
 function SimpleTooltip({
   active,
   payload,
@@ -342,13 +454,13 @@ function SimpleTooltip({
   kg = false,
 }: {
   active?: boolean
-  payload?: { value: number; payload: { week?: string; muscle?: string } }[]
+  payload?: { value: number; payload: { bucket?: string } }[]
   unit: string
   kg?: boolean
 }) {
   if (!active || !payload?.length) return null
   const p = payload[0]
-  const label = p.payload.muscle ?? (p.payload.week ? formatShortDate(new Date(p.payload.week)) : '')
+  const label = p.payload.bucket ? formatShortDate(new Date(p.payload.bucket)) : ''
   return (
     <div className="rounded-card border border-hairline bg-surface-2 px-3 py-2 text-xs">
       <div className="text-ink-3">{label}</div>
