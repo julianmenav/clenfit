@@ -7,7 +7,8 @@
   "customBadge": "Personalizado",
   "sections": {
     "mine": "Mis ejercicios",
-    "catalog": "Catálogo"
+    "catalog": "Catálogo",
+    "mostUsed": "Más usados"
   },
   "menu": {
     "duplicate": "Duplicar"
@@ -106,5 +107,10 @@
     "sessions_one": "{{count}} sesión",
     "sessions_other": "{{count}} sesiones",
     "prPoint": "Récord"
+  },
+  "usage": {
+    "today": "hoy",
+    "daysAgo_one": "hace {{count}} d",
+    "daysAgo_other": "hace {{count}} d"
   }
 }
