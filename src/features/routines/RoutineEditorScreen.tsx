@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2, X } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router'
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
+import { BackButton } from '@/components/ui/BackButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { NumericField } from '@/components/ui/NumericField'
 import { useRoutines } from '@/data/hooks'
@@ -76,13 +77,7 @@ export function RoutineEditorScreen() {
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
       <header className="flex items-center gap-2">
-        <Link
-          to="/rutinas"
-          aria-label={t('common:actions.back')}
-          className="flex size-10 items-center justify-center rounded-card text-ink-2 active:bg-surface-2"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+        <BackButton fallback="/rutinas" />
         <h1 className="flex-1 text-xl font-bold">
           {existing ? t('routines:edit') : t('routines:new')}
         </h1>

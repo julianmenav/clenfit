@@ -1,7 +1,8 @@
 import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { BackButton } from '@/components/ui/BackButton'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { ExerciseMenu } from './ExerciseMenu'
 import { useExerciseStats, useExerciseWorkouts, useUserProfile } from '@/data/hooks'
@@ -49,13 +50,7 @@ export function ExerciseDetailScreen() {
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
       <header className="flex items-center gap-2">
-        <Link
-          to="/ejercicios"
-          aria-label={t('common:actions.back')}
-          className="flex size-10 items-center justify-center rounded-card text-ink-2 active:bg-surface-2"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+        <BackButton fallback="/ejercicios" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-bold">{name}</h1>
           {def && (
