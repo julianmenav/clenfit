@@ -56,6 +56,35 @@ export function withSetPatch<W extends Pick<Workout, 'exercises'>>(
   }))
 }
 
+/**
+ * Sets the weight of one set and carries it to the following ones, so entering
+ * a load once covers the whole exercise.
+ *
+ * Only sets that were "following along" are touched: still open (not completed)
+ * and holding either no weight or exactly the value being replaced. A set the
+ * user typed a different number into keeps it, and warmups are left alone
+ * because they run lighter on purpose.
+ */
+export function withPropagatedWeight<W extends Pick<Workout, 'exercises'>>(
+  w: W,
+  exIndex: number,
+  setIndex: number,
+  weightKg: number | null,
+): W {
+  return mapExercise(w, exIndex, (ex) => {
+    const previous = ex.sets[setIndex]?.weightKg ?? null
+    return {
+      ...ex,
+      sets: ex.sets.map((s, j) => {
+        if (j === setIndex) return { ...s, weightKg }
+        if (j < setIndex) return s
+        if (s.completed || s.type === 'warmup') return s
+        return s.weightKg === previous ? { ...s, weightKg } : s
+      }),
+    }
+  })
+}
+
 /** Clones the last set (like the store's addSet). */
 export function withAddedSet<W extends Pick<Workout, 'exercises'>>(w: W, exIndex: number): W {
   return mapExercise(w, exIndex, (ex) => {

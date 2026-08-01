@@ -6,6 +6,7 @@ import {
   withCycledSetType,
   withMovedExercise,
   withRemovedExercise,
+  withPropagatedWeight,
   withRemovedSet,
   withSetPatch,
 } from './workoutEdit'
@@ -123,5 +124,73 @@ describe('mutaciones del borrador', () => {
     expect(withMovedExercise(w, 0, 5)).toBe(w)
     const out = withMovedExercise(w, 0, 1)
     expect(out.exercises.map((e) => e.exerciseName)).toEqual(['B', 'A'])
+  })
+})
+
+describe('withPropagatedWeight', () => {
+  const weights = (w: { exercises: WorkoutExercise[] }) =>
+    w.exercises[0].sets.map((s) => s.weightKg)
+
+  it('lleva el peso a las series vacías siguientes', () => {
+    const base = { exercises: [exercise([set({}), set({ order: 1 }), set({ order: 2 })])] }
+    expect(weights(withPropagatedWeight(base, 0, 0, 80))).toEqual([80, 80, 80])
+  })
+
+  it('sustituye el peso anterior cuando se corrige la primera serie', () => {
+    const base = {
+      exercises: [
+        exercise([
+          set({ weightKg: 80 }),
+          set({ order: 1, weightKg: 80 }),
+          set({ order: 2, weightKg: 80 }),
+        ]),
+      ],
+    }
+    expect(weights(withPropagatedWeight(base, 0, 0, 85))).toEqual([85, 85, 85])
+  })
+
+  it('respeta las series con un peso distinto puesto a mano', () => {
+    const base = {
+      exercises: [
+        exercise([
+          set({ weightKg: 80 }),
+          set({ order: 1, weightKg: 80 }),
+          set({ order: 2, weightKg: 100 }),
+        ]),
+      ],
+    }
+    expect(weights(withPropagatedWeight(base, 0, 0, 90))).toEqual([90, 90, 100])
+  })
+
+  it('no toca las series completadas ni los calentamientos', () => {
+    const base = {
+      exercises: [
+        exercise([
+          set({}),
+          set({ order: 1, type: 'warmup' }),
+          set({ order: 2, completed: true }),
+          set({ order: 3 }),
+        ]),
+      ],
+    }
+    expect(weights(withPropagatedWeight(base, 0, 0, 70))).toEqual([70, null, null, 70])
+  })
+
+  it('no reescribe las series anteriores', () => {
+    const base = { exercises: [exercise([set({}), set({ order: 1 }), set({ order: 2 })])] }
+    expect(weights(withPropagatedWeight(base, 0, 1, 60))).toEqual([null, 60, 60])
+  })
+
+  it('borrar el peso lo borra también en las siguientes', () => {
+    const base = {
+      exercises: [exercise([set({ weightKg: 60 }), set({ order: 1, weightKg: 60 })])],
+    }
+    expect(weights(withPropagatedWeight(base, 0, 0, null))).toEqual([null, null])
+  })
+
+  it('no muta la entrada', () => {
+    const base = { exercises: [exercise([set({}), set({ order: 1 })])] }
+    withPropagatedWeight(base, 0, 0, 50)
+    expect(weights(base)).toEqual([null, null])
   })
 })

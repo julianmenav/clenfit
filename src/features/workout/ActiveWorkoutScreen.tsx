@@ -207,6 +207,9 @@ export function ActiveWorkoutScreen() {
               exercise={ex}
               stats={statsMap?.get(ex.exerciseId)}
               onPatchSet={(setIndex, patch) => store.updateSet(uid, i, setIndex, patch)}
+              onPatchWeight={(setIndex, weightKg) =>
+                store.updateSetWeight(uid, i, setIndex, weightKg)
+              }
               onCycleType={(setIndex) => store.cycleSetType(uid, i, setIndex)}
               onCompleteSet={(setIndex) => completeSet(i, setIndex)}
               onAddSet={() => store.addSet(uid, i)}

@@ -11,6 +11,7 @@ import {
   type FinishResult,
 } from '@/data/workoutMutations'
 import { defUsesBodyweight } from '@/domain/volume'
+import { withPropagatedWeight } from '@/domain/workoutEdit'
 import type {
   ExerciseDef,
   ExerciseStats,
@@ -78,6 +79,13 @@ interface ActiveWorkoutState {
   addSet: (uid: string, exIndex: number) => void
   removeSet: (uid: string, exIndex: number, setIndex: number) => void
   updateSet: (uid: string, exIndex: number, setIndex: number, patch: Partial<SetEntry>) => void
+  /** Weight for one set, carried to the following open sets of the exercise. */
+  updateSetWeight: (
+    uid: string,
+    exIndex: number,
+    setIndex: number,
+    weightKg: number | null,
+  ) => void
   cycleSetType: (uid: string, exIndex: number, setIndex: number) => void
   setNotes: (uid: string, notes: string) => void
   setExerciseNotes: (uid: string, exIndex: number, notes: string) => void
@@ -205,6 +213,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()(
                 : ex,
             ),
           })),
+
+        updateSetWeight: (uid, exIndex, setIndex, weightKg) =>
+          mutate(uid, (w) => withPropagatedWeight(w, exIndex, setIndex, weightKg)),
 
         cycleSetType: (uid, exIndex, setIndex) =>
           mutate(uid, (w) => ({
