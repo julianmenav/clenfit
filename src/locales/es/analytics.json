@@ -20,13 +20,6 @@
   },
   "empty": "Entrena unas semanas y aquí verás tus tendencias.",
   "perWeek": "series/semana",
-  "weekly": {
-    "title": "Resumen semanal",
-    "vsPrevWeek": "vs. semana anterior",
-    "workouts": "Entrenos",
-    "sets": "Series",
-    "volume": "Volumen"
-  },
   "oneRm": {
     "title": "Progresión 1RM",
     "exercise": "Ejercicio",
@@ -44,5 +37,20 @@
     "strength": "Fuerza (1-5)",
     "hypertrophy": "Hipertrofia (6-12)",
     "endurance": "Resistencia (13+)"
+  },
+  "recent": {
+    "title": "Últimos 7 días",
+    "vsPrev": "vs. los 7 días anteriores",
+    "workouts": "Entrenos",
+    "sets": "Series",
+    "volume": "Volumen"
+  },
+  "coverage": {
+    "title": "Cobertura muscular",
+    "sets_one": "{{count}} serie",
+    "sets_other": "{{count}} series",
+    "today": "hoy",
+    "daysAgo_one": "hace {{count}} d",
+    "daysAgo_other": "hace {{count}} d"
   }
 }

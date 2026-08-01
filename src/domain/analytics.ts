@@ -169,22 +169,26 @@ export function runningMaxFlags(values: number[]): boolean[] {
   })
 }
 
-/* ----------------------------- Week comparison ---------------------------- */
+/* ---------------------------- Period comparison ---------------------------- */
 
-export interface WeekTotals {
+export interface PeriodTotals {
   workouts: number
   sets: number
   volumeKg: number
 }
 
-/** Buckets workouts by dateKey: [currentStartKey, ∞) vs [prevStartKey, currentStartKey). */
-export function compareWeeks(
+/**
+ * Buckets workouts by dateKey: [currentStartKey, ∞) vs [prevStartKey, currentStartKey).
+ * Callers pass rolling windows rather than calendar weeks — a partial calendar
+ * week compared against a full one reads as a huge drop every Monday.
+ */
+export function comparePeriods(
   workouts: Pick<Workout, 'dateKey' | 'totalSets' | 'totalVolumeKg'>[],
   currentStartKey: string,
   prevStartKey: string,
-): { current: WeekTotals; previous: WeekTotals } {
-  const current: WeekTotals = { workouts: 0, sets: 0, volumeKg: 0 }
-  const previous: WeekTotals = { workouts: 0, sets: 0, volumeKg: 0 }
+): { current: PeriodTotals; previous: PeriodTotals } {
+  const current: PeriodTotals = { workouts: 0, sets: 0, volumeKg: 0 }
+  const previous: PeriodTotals = { workouts: 0, sets: 0, volumeKg: 0 }
   for (const w of workouts) {
     if (w.dateKey < prevStartKey) continue
     const bucket = w.dateKey >= currentStartKey ? current : previous
@@ -193,4 +197,53 @@ export function compareWeeks(
     bucket.volumeKg += w.totalVolumeKg ?? 0
   }
   return { current, previous }
+}
+
+/* ---------------------------- Muscle coverage ----------------------------- */
+
+export interface MuscleCoverageRow {
+  muscle: MuscleGroup
+  /** direct working sets inside the window */
+  sets: number
+  /** whole days from the last session that worked it, 0 = today */
+  daysSince: number
+}
+
+/**
+ * What has been trained lately and what is going stale. Reads the precomputed
+ * per-workout `setsByMuscle` (direct sets only), so it never walks set arrays.
+ *
+ * Only muscles with history appear — an empty row for every group in the
+ * catalog would be noise for someone who has trained twice. `daysSinceKey` is
+ * injected to keep this module date-lib-free, as in `bucketedTotals`.
+ */
+export function muscleCoverage(
+  workouts: Pick<Workout, 'dateKey' | 'setsByMuscle'>[],
+  windowStartKey: string,
+  daysSinceKey: (dateKey: string) => number,
+): MuscleCoverageRow[] {
+  const setsInWindow = new Map<MuscleGroup, number>()
+  const lastWorked = new Map<MuscleGroup, string>()
+
+  for (const w of workouts) {
+    for (const [key, count] of Object.entries(w.setsByMuscle ?? {})) {
+      if (count == null || count <= 0) continue
+      const muscle = key as MuscleGroup
+      const seen = lastWorked.get(muscle)
+      if (seen == null || w.dateKey > seen) lastWorked.set(muscle, w.dateKey)
+      if (w.dateKey >= windowStartKey) {
+        setsInWindow.set(muscle, (setsInWindow.get(muscle) ?? 0) + count)
+      }
+    }
+  }
+
+  return [...lastWorked.entries()]
+    .map(([muscle, dateKey]) => ({
+      muscle,
+      sets: setsInWindow.get(muscle) ?? 0,
+      daysSince: daysSinceKey(dateKey),
+    }))
+    // busiest first so the bars read as a chart; untouched muscles sink to the
+    // bottom, ordered by how long they have been neglected
+    .sort((a, b) => b.sets - a.sets || b.daysSince - a.daysSince)
 }

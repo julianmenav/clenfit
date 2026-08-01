@@ -31,7 +31,7 @@ import { muscleGroups, type WithId, type Workout } from '@/domain/types'
 import { formatShortDate, toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { OneRmProgressionCard } from './OneRmProgressionCard'
-import { WeeklySummaryCard } from './WeeklySummaryCard'
+import { Last7DaysCard } from './Last7DaysCard'
 
 type RangeKey = '1w' | '4w' | '3m' | '1y' | 'all'
 const rangeDays: Record<RangeKey, number | null> = {
@@ -69,7 +69,7 @@ export function AnalyticsScreen() {
     <div className="flex flex-col gap-5 px-4 pt-6">
       <h1 className="text-2xl font-bold tracking-tight">{t('analytics:title')}</h1>
 
-      <WeeklySummaryCard workouts={workouts} />
+      <Last7DaysCard workouts={workouts} />
 
       <div className="flex gap-1.5">
         {(Object.keys(rangeDays) as RangeKey[]).map((k) => (

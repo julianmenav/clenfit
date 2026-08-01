@@ -8,7 +8,8 @@ import { bucketedTotals } from '@/domain/analytics'
 import { toDateKey } from '@/lib/dates'
 import { useActiveWorkoutStore } from '@/store/activeWorkout'
 import { useStartWorkout } from '@/features/workout/useStartWorkout'
-import { WeeklySummaryCard } from '@/features/analytics/WeeklySummaryCard'
+import { Last7DaysCard } from '@/features/analytics/Last7DaysCard'
+import { MuscleCoverage } from './MuscleCoverage'
 import type { Routine, WithId, Workout } from '@/domain/types'
 
 export function HomeScreen() {
@@ -82,7 +83,7 @@ export function HomeScreen() {
           </p>
         ) : (
           <>
-            <WeeklySummaryCard workouts={recent} />
+            <Last7DaysCard workouts={recent} footer={<MuscleCoverage workouts={recent} />} />
             <EightWeekStrip workouts={recent} />
           </>
         ))}

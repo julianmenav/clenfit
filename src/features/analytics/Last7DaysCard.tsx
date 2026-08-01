@@ -1,38 +1,48 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { startOfWeek, subDays } from 'date-fns'
-import { compareWeeks, type WeekTotals } from '@/domain/analytics'
+import { subDays } from 'date-fns'
+import { comparePeriods, type PeriodTotals } from '@/domain/analytics'
 import type { Workout } from '@/domain/types'
 import { toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 
 /**
- * This calendar week (Monday start) vs the previous one, with trend arrows.
+ * Rolling 7 days vs the 7 before them, with trend arrows. Rolling rather than
+ * calendar weeks on purpose: a Monday-start week is compared while still
+ * mostly empty, which read as −100% for days on end.
+ *
  * Deliberately Recharts-free so the Home screen can import it statically
  * without pulling the charts chunk.
  */
-export function WeeklySummaryCard({
+export function Last7DaysCard({
   workouts,
+  footer,
 }: {
   workouts: Pick<Workout, 'dateKey' | 'totalSets' | 'totalVolumeKg'>[]
+  /** extra block rendered under a divider inside the same card */
+  footer?: ReactNode
 }) {
   const { t } = useTranslation(['analytics', 'common'])
 
   const { current, previous } = useMemo(() => {
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-    return compareWeeks(workouts, toDateKey(weekStart), toDateKey(subDays(weekStart, 7)))
+    const today = new Date()
+    return comparePeriods(
+      workouts,
+      toDateKey(subDays(today, 6)),
+      toDateKey(subDays(today, 13)),
+    )
   }, [workouts])
 
-  const stats: { label: string; pick: (w: WeekTotals) => number; kg?: boolean }[] = [
-    { label: t('analytics:weekly.workouts'), pick: (w) => w.workouts },
-    { label: t('analytics:weekly.sets'), pick: (w) => w.sets },
-    { label: t('analytics:weekly.volume'), pick: (w) => w.volumeKg, kg: true },
+  const stats: { label: string; pick: (w: PeriodTotals) => number; kg?: boolean }[] = [
+    { label: t('analytics:recent.workouts'), pick: (w) => w.workouts },
+    { label: t('analytics:recent.sets'), pick: (w) => w.sets },
+    { label: t('analytics:recent.volume'), pick: (w) => w.volumeKg, kg: true },
   ]
 
   return (
     <section className="rounded-card border border-hairline bg-surface p-3">
-      <h2 className="pb-2 font-semibold">{t('analytics:weekly.title')}</h2>
+      <h2 className="pb-2 font-semibold">{t('analytics:recent.title')}</h2>
       <div className="grid grid-cols-3 gap-2">
         {stats.map(({ label, pick, kg }) => {
           const now = pick(current)
@@ -62,7 +72,9 @@ export function WeeklySummaryCard({
           )
         })}
       </div>
-      <p className="pt-2 text-xs text-ink-3">{t('analytics:weekly.vsPrevWeek')}</p>
+      <p className="pt-2 text-xs text-ink-3">{t('analytics:recent.vsPrev')}</p>
+
+      {footer && <div className="mt-3 border-t border-hairline pt-3">{footer}</div>}
     </section>
   )
 }

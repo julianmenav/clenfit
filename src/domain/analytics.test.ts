@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   balanceGroupOf,
   bucketedTotals,
-  compareWeeks,
+  comparePeriods,
+  muscleCoverage,
   muscleBalance,
   muscleSetBreakdown,
   repRangeDistribution,
@@ -206,15 +207,15 @@ describe('runningMaxFlags', () => {
   })
 })
 
-describe('compareWeeks', () => {
+describe('comparePeriods', () => {
   const w = (dateKey: string, totalSets: number, totalVolumeKg: number) => ({
     dateKey,
     totalSets,
     totalVolumeKg,
   })
 
-  it('separa semana actual y anterior por dateKey, ignorando lo previo', () => {
-    const { current, previous } = compareWeeks(
+  it('separa ventana actual y anterior por dateKey, ignorando lo previo', () => {
+    const { current, previous } = comparePeriods(
       [
         w('2026-07-13', 12, 3000), // current week (starts Monday 13th)
         w('2026-07-08', 10, 2500), // previous week
@@ -229,11 +230,76 @@ describe('compareWeeks', () => {
   })
 
   it('tolera totales nulos', () => {
-    const { current } = compareWeeks(
+    const { current } = comparePeriods(
       [{ dateKey: '2026-07-13', totalSets: null, totalVolumeKg: null }],
       '2026-07-13',
       '2026-07-06',
     )
     expect(current).toEqual({ workouts: 1, sets: 0, volumeKg: 0 })
+  })
+})
+
+describe('muscleCoverage', () => {
+  // 2026-07-20 as "today": the 7-day window opens on the 14th
+  const daysSince = (dateKey: string) =>
+    Math.round((Date.parse('2026-07-20') - Date.parse(dateKey)) / 86_400_000)
+
+  const w = (dateKey: string, setsByMuscle: Record<string, number> | null) => ({
+    dateKey,
+    setsByMuscle,
+  })
+
+  it('suma solo las series de la ventana pero fecha con todo el historial', () => {
+    const rows = muscleCoverage(
+      [
+        w('2026-07-19', { chest: 6 }),
+        w('2026-07-15', { chest: 4, quads: 3 }),
+        w('2026-07-02', { chest: 9, back: 5 }), // outside the window
+      ],
+      '2026-07-14',
+      daysSince,
+    )
+    expect(rows).toEqual([
+      { muscle: 'chest', sets: 10, daysSince: 1 },
+      { muscle: 'quads', sets: 3, daysSince: 5 },
+      { muscle: 'back', sets: 0, daysSince: 18 },
+    ])
+  })
+
+  it('ordena por series y deja abajo lo más olvidado', () => {
+    const rows = muscleCoverage(
+      [
+        w('2026-07-18', { back: 6 }),
+        w('2026-07-16', { chest: 4 }),
+        w('2026-06-20', { calves: 3 }), // 30 días sin tocar
+        w('2026-07-01', { glutes: 3 }), // 19 días sin tocar
+      ],
+      '2026-07-14',
+      daysSince,
+    )
+    // fuera de la ventana ambos tienen 0 series: primero el más olvidado
+    expect(rows.map((r) => r.muscle)).toEqual(['back', 'chest', 'calves', 'glutes'])
+  })
+
+  it('a igualdad de series, primero el que lleva más tiempo sin tocarse', () => {
+    const rows = muscleCoverage(
+      [w('2026-07-18', { back: 4 }), w('2026-07-16', { chest: 4 })],
+      '2026-07-14',
+      daysSince,
+    )
+    expect(rows.map((r) => r.muscle)).toEqual(['chest', 'back'])
+  })
+
+  it('ignora setsByMuscle nulo y los recuentos a cero', () => {
+    const rows = muscleCoverage(
+      [w('2026-07-19', null), w('2026-07-18', { chest: 0, back: 2 })],
+      '2026-07-14',
+      daysSince,
+    )
+    expect(rows).toEqual([{ muscle: 'back', sets: 2, daysSince: 2 }])
+  })
+
+  it('sin historial devuelve una lista vacía', () => {
+    expect(muscleCoverage([], '2026-07-14', daysSince)).toEqual([])
   })
 })
