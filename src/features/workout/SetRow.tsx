@@ -30,6 +30,7 @@ export function SetRow({
   measurement,
   ghost,
   onPatch,
+  onWeight,
   onCycleType,
   onComplete,
 }: {
@@ -39,6 +40,8 @@ export function SetRow({
   /** the equivalent set from the last session (placeholder + autocomplete) */
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
+  /** weight commits go through here so they can carry to the following sets */
+  onWeight?: (weightKg: number | null) => void
   onCycleType: () => void
   onComplete: () => void
 }) {
@@ -67,7 +70,13 @@ export function SetRow({
         {badge}
       </button>
 
-      <Fields set={set} measurement={measurement} ghost={ghost} onPatch={onPatch} />
+      <Fields
+        set={set}
+        measurement={measurement}
+        ghost={ghost}
+        onPatch={onPatch}
+        onWeight={onWeight}
+      />
 
       <button
         type="button"
@@ -90,14 +99,17 @@ function Fields({
   measurement,
   ghost,
   onPatch,
+  onWeight,
 }: {
   set: SetEntry
   measurement: Measurement
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
+  onWeight?: (weightKg: number | null) => void
 }) {
   const { t } = useTranslation('workout')
 
+  const commitWeight = onWeight ?? ((v: number | null) => onPatch({ weightKg: v }))
   const weight = (
     <NumericField
       key="w"
@@ -105,10 +117,10 @@ function Fields({
       value={set.weightKg}
       format={formatKg}
       parse={parseDecimal}
-      onCommit={(v) => onPatch({ weightKg: v })}
+      onCommit={commitWeight}
       ghost={ghost?.weightKg != null ? formatKg(ghost.weightKg) : undefined}
       onAdoptGhost={
-        ghost?.weightKg != null ? () => onPatch({ weightKg: ghost.weightKg }) : undefined
+        ghost?.weightKg != null ? () => commitWeight(ghost.weightKg) : undefined
       }
     />
   )

@@ -30,7 +30,8 @@
     "confirm": "Confirmar",
     "search": "Buscar",
     "back": "Volver",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "more": "Más opciones"
   },
   "home": {
     "last8Weeks": "Últimas 8 semanas",

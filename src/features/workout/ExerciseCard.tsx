@@ -4,13 +4,13 @@ import {
   ArrowUpDown,
   History,
   Minus,
-  MoreVertical,
   Plus,
   StickyNote,
   Trash2,
   Trophy,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { KebabMenu, MenuItem } from '@/components/ui/KebabMenu'
 import { ghostForSet } from '@/domain/ghosts'
 import type { ExerciseStats, SetEntry, WithId, WorkoutExercise } from '@/domain/types'
 import { formatKg } from '@/lib/formatSet'
@@ -21,6 +21,7 @@ export function ExerciseCard({
   exercise,
   stats,
   onPatchSet,
+  onPatchWeight,
   onCycleType,
   onCompleteSet,
   onAddSet,
@@ -34,6 +35,8 @@ export function ExerciseCard({
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
   onPatchSet: (setIndex: number, patch: Partial<SetEntry>) => void
+  /** separate from onPatchSet so a weight can carry to the following sets */
+  onPatchWeight?: (setIndex: number, weightKg: number | null) => void
   onCycleType: (setIndex: number) => void
   onCompleteSet: (setIndex: number) => void
   onAddSet: () => void
@@ -45,19 +48,11 @@ export function ExerciseCard({
   onShowHistory: () => void
 }) {
   const { t } = useTranslation(['workout', 'common'])
-  const [menuOpen, setMenuOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const showNotes = notesOpen || exercise.notes != null
 
   const best = stats?.prs.heaviestWeightKg?.value
   const bestReps = stats?.prs.mostReps?.value
-
-  function menuAction(fn: () => void) {
-    return () => {
-      setMenuOpen(false)
-      fn()
-    }
-  }
 
   return (
     <section className="rounded-card border border-hairline bg-surface p-3">
@@ -82,55 +77,50 @@ export function ExerciseCard({
           <History className="size-5" />
         </button>
 
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            aria-label={t('common:actions.edit')}
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="flex size-9 items-center justify-center rounded-card text-ink-3 active:bg-surface-2"
-          >
-            <MoreVertical className="size-5" />
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-10 z-20 w-56 overflow-hidden rounded-card border border-hairline bg-surface-2 py-1 shadow-lg">
+        <KebabMenu label={t('common:actions.edit')}>
+          {(close) => {
+            const act = (fn: () => void) => () => {
+              close()
+              fn()
+            }
+            return (
+              <>
                 <MenuItem
                   icon={<ArrowLeftRight className="size-4" />}
                   label={t('workout:swapExercise')}
-                  onClick={menuAction(onSwap)}
+                  onClick={act(onSwap)}
                 />
                 {!showNotes && (
                   <MenuItem
                     icon={<StickyNote className="size-4" />}
                     label={t('workout:exerciseNotes.add')}
-                    onClick={menuAction(() => setNotesOpen(true))}
+                    onClick={act(() => setNotesOpen(true))}
                   />
                 )}
                 {onReorder && (
                   <MenuItem
                     icon={<ArrowUpDown className="size-4" />}
                     label={t('workout:reorder.menuItem')}
-                    onClick={menuAction(onReorder)}
+                    onClick={act(onReorder)}
                   />
                 )}
                 {exercise.sets.length > 1 && (
                   <MenuItem
                     icon={<Minus className="size-4" />}
                     label={t('workout:removeLastSet')}
-                    onClick={menuAction(onRemoveLastSet)}
+                    onClick={act(onRemoveLastSet)}
                   />
                 )}
                 <MenuItem
                   icon={<Trash2 className="size-4" />}
                   label={t('workout:removeExercise')}
                   destructive
-                  onClick={menuAction(onRemove)}
+                  onClick={act(onRemove)}
                 />
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )
+          }}
+        </KebabMenu>
       </header>
 
       <SetHeader measurement={exercise.measurement} />
@@ -143,6 +133,7 @@ export function ExerciseCard({
             measurement={exercise.measurement}
             ghost={ghostForSet(exercise.sets, i, stats?.lastPerformance?.sets)}
             onPatch={(patch) => onPatchSet(i, patch)}
+            onWeight={onPatchWeight && ((v) => onPatchWeight(i, v))}
             onCycleType={() => onCycleType(i)}
             onComplete={() => onCompleteSet(i)}
           />
@@ -168,30 +159,5 @@ export function ExerciseCard({
         />
       )}
     </section>
-  )
-}
-
-function MenuItem({
-  icon,
-  label,
-  onClick,
-  destructive = false,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  destructive?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm ${
-        destructive ? 'text-status-over' : 'text-ink'
-      } active:bg-surface`}
-    >
-      {icon}
-      {label}
-    </button>
   )
 }
