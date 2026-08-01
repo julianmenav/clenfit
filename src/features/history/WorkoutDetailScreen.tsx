@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, ArrowLeftRight, ChevronRight, Pencil, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeftRight, ChevronRight, Pencil, Trash2, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
+import { BackButton } from '@/components/ui/BackButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useWorkout } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { deleteCompletedWorkout } from '@/data/workoutMutations'
+import { exerciseVolume, isWorkingSet } from '@/domain/volume'
 import { formatDay, formatDuration } from '@/lib/dates'
 import { formatKg, formatSet } from '@/lib/formatSet'
-import type { SetType } from '@/domain/types'
+import type { SetType, WorkoutExercise } from '@/domain/types'
 
 export function WorkoutDetailScreen() {
   const { workoutId = '' } = useParams()
@@ -43,13 +45,7 @@ export function WorkoutDetailScreen() {
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
       <header className="flex items-center gap-2">
-        <Link
-          to="/historial"
-          aria-label={t('common:actions.back')}
-          className="flex size-10 items-center justify-center rounded-card text-ink-2 active:bg-surface-2"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+        <BackButton fallback="/historial" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-bold">{workout.name}</h1>
           <p className="text-xs text-ink-3">{formatDay(new Date(workout.dateKey))}</p>
@@ -109,6 +105,7 @@ export function WorkoutDetailScreen() {
                 })}
               </p>
             )}
+            <ExerciseTotals exercise={ex} bodyWeightKg={workout.bodyWeightKg} />
             <ul className="mt-2 flex flex-col gap-1">
               {ex.sets.map((set, j) => (
                 <li key={j} className="flex items-center gap-3 text-sm">
@@ -135,6 +132,38 @@ export function WorkoutDetailScreen() {
         onCancel={() => setDeleting(false)}
       />
     </div>
+  )
+}
+
+/**
+ * Per-exercise working volume, so a session's total can be attributed to the
+ * movements that produced it. Warmups are excluded (via `isWorkingSet`), hence
+ * the set count can be lower than the rows listed below it.
+ */
+function ExerciseTotals({
+  exercise,
+  bodyWeightKg,
+}: {
+  exercise: WorkoutExercise
+  bodyWeightKg: number | null
+}) {
+  const { t } = useTranslation(['common', 'workout'])
+  const volume = exerciseVolume(exercise, bodyWeightKg)
+  const sets = exercise.sets.filter(isWorkingSet).length
+  if (sets === 0) return null
+
+  return (
+    <p className="tnum mt-1 text-xs text-ink-3">
+      {volume > 0 && (
+        <>
+          <span className="font-medium text-ink-2">
+            {formatKg(volume)} {t('common:units.kg')}
+          </span>
+          {' · '}
+        </>
+      )}
+      {t('common:stats.sets', { count: sets })}
+    </p>
   )
 }
 

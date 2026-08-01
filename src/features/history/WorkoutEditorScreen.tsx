@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import { Navigate, useNavigate, useParams } from 'react-router'
 import { Timestamp } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
+import { BackButton } from '@/components/ui/BackButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { NumericField } from '@/components/ui/NumericField'
 import { useExerciseIndex } from '@/data/exerciseIndex'
@@ -18,6 +19,7 @@ import {
   withCycledSetType,
   withExerciseNotes,
   withMovedExercise,
+  withPropagatedWeight,
   withRemovedExercise,
   withRemovedSet,
   withSetPatch,
@@ -154,13 +156,7 @@ function Editor({
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
       <header className="flex items-center gap-2">
-        <Link
-          to={isNew ? '/historial' : `/historial/${initial.id}`}
-          aria-label={t('common:actions.back')}
-          className="flex size-10 items-center justify-center rounded-card text-ink-2 active:bg-surface-2"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+        <BackButton fallback={isNew ? '/historial' : `/historial/${initial.id}`} />
         <h1 className="min-w-0 flex-1 truncate text-xl font-bold">
           {isNew ? t('history:editor.titleNew') : t('history:editor.titleEdit')}
         </h1>
@@ -241,6 +237,9 @@ function Editor({
               stats={statsMap?.get(ex.exerciseId)}
               onPatchSet={(setIndex, patch) =>
                 setDraft((d) => withSetPatch(d, i, setIndex, patch))
+              }
+              onPatchWeight={(setIndex, weightKg) =>
+                setDraft((d) => withPropagatedWeight(d, i, setIndex, weightKg))
               }
               onCycleType={(setIndex) => setDraft((d) => withCycledSetType(d, i, setIndex))}
               onCompleteSet={(setIndex) =>
