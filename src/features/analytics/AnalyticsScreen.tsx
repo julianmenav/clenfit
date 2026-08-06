@@ -11,9 +11,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartPie } from 'lucide-react'
+import { ChartPie, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { startOfWeek, subDays } from 'date-fns'
+import { addDays, parseISO, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useCompletedWorkouts } from '@/data/hooks'
@@ -28,37 +28,52 @@ import {
   type RepRange,
 } from '@/domain/analytics'
 import { muscleGroups, type WithId, type Workout } from '@/domain/types'
-import { formatShortDate, toDateKey } from '@/lib/dates'
+import {
+  addWeeksToKey,
+  formatShortDate,
+  formatWeekRange,
+  toDateKey,
+  weekEndKey,
+  weekStartKey,
+} from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { Last7DaysCard } from './Last7DaysCard'
 
-type RangeKey = '1w' | '4w' | '3m' | '1y' | 'all'
-const rangeDays: Record<RangeKey, number | null> = {
-  '1w': 7,
+type RangeKey = 'week' | '4w' | '3m' | '1y' | 'all'
+const rangeDays: Record<Exclude<RangeKey, 'week'>, number | null> = {
   '4w': 28,
   '3m': 91,
   '1y': 365,
   all: null,
 }
-
-const weekStartKey = (dateKey: string) =>
-  toDateKey(startOfWeek(new Date(dateKey), { weekStartsOn: 1 }))
+const rangeKeys: RangeKey[] = ['week', '4w', '3m', '1y', 'all']
 
 export function AnalyticsScreen() {
   const { t } = useTranslation(['analytics', 'exercises', 'common'])
   const workouts = useCompletedWorkouts(500)
   const [range, setRange] = useState<RangeKey>('3m')
+  const currentWeekStart = weekStartKey(toDateKey(new Date()))
+  const [weekStart, setWeekStart] = useState(currentWeekStart)
 
-  const rangeFromKey = useMemo(() => {
-    const days = rangeDays[range]
-    return days == null ? undefined : toDateKey(subDays(new Date(), days))
-  }, [range])
+  // ‹ stops at the week of the earliest loaded workout
+  const minWeekStart = useMemo(() => {
+    if (!workouts || workouts.length === 0) return null
+    let min = workouts[0].dateKey
+    for (const w of workouts) if (w.dateKey < min) min = w.dateKey
+    return weekStartKey(min)
+  }, [workouts])
 
   const filtered = useMemo(() => {
     if (!workouts) return []
-    if (rangeFromKey == null) return workouts
-    return workouts.filter((w) => w.dateKey >= rangeFromKey)
-  }, [workouts, rangeFromKey])
+    if (range === 'week') {
+      const end = weekEndKey(weekStart)
+      return workouts.filter((w) => w.dateKey >= weekStart && w.dateKey <= end)
+    }
+    const days = rangeDays[range]
+    if (days == null) return workouts
+    const fromKey = toDateKey(subDays(new Date(), days))
+    return workouts.filter((w) => w.dateKey >= fromKey)
+  }, [workouts, range, weekStart])
 
   if (workouts === undefined) {
     return <p className="px-4 pt-10 text-center text-ink-3">{t('common:loading')}</p>
@@ -71,7 +86,7 @@ export function AnalyticsScreen() {
       <Last7DaysCard workouts={workouts} />
 
       <div className="flex gap-1.5">
-        {(Object.keys(rangeDays) as RangeKey[]).map((k) => (
+        {rangeKeys.map((k) => (
           <Chip
             key={k}
             label={t(`analytics:range.${k}`)}
@@ -81,18 +96,73 @@ export function AnalyticsScreen() {
         ))}
       </div>
 
+      {range === 'week' && (
+        <WeekPager
+          weekStart={weekStart}
+          currentWeekStart={currentWeekStart}
+          minWeekStart={minWeekStart}
+          onStep={(dir) => setWeekStart((w) => addWeeksToKey(w, dir))}
+        />
+      )}
+
       {filtered.length === 0 ? (
-        <EmptyState icon={ChartPie} title={t('analytics:empty')} />
+        <EmptyState
+          icon={ChartPie}
+          title={range === 'week' ? t('analytics:week.empty') : t('analytics:empty')}
+        />
       ) : (
         <>
           <SetsPerMuscle workouts={filtered} />
           <MuscleBalance workouts={filtered} />
           <RepRanges workouts={filtered} />
-          <VolumeTrend workouts={filtered} daily={range === '1w'} />
+          <VolumeTrend workouts={filtered} weekStart={range === 'week' ? weekStart : undefined} />
           {/* workouts-per-week is meaningless inside a single week */}
-          {range !== '1w' && <Frequency workouts={filtered} />}
+          {range !== 'week' && <Frequency workouts={filtered} />}
         </>
       )}
+    </div>
+  )
+}
+
+/** Mon–Sun stepper for week mode; › stops at the current week. */
+function WeekPager({
+  weekStart,
+  currentWeekStart,
+  minWeekStart,
+  onStep,
+}: {
+  weekStart: string
+  currentWeekStart: string
+  minWeekStart: string | null
+  onStep: (dir: -1 | 1) => void
+}) {
+  const { t } = useTranslation('analytics')
+  const isCurrent = weekStart >= currentWeekStart
+  const atMin = minWeekStart == null || weekStart <= minWeekStart
+
+  return (
+    <div className="flex items-center justify-between rounded-card border border-hairline bg-surface p-1">
+      <button
+        type="button"
+        aria-label={t('week.prev')}
+        disabled={atMin}
+        onClick={() => onStep(-1)}
+        className="flex size-9 items-center justify-center rounded-card text-ink-2 active:bg-surface-2 disabled:opacity-30"
+      >
+        <ChevronLeft className="size-5" />
+      </button>
+      <span className="text-sm font-medium">
+        {isCurrent ? t('week.current') : formatWeekRange(weekStart)}
+      </span>
+      <button
+        type="button"
+        aria-label={t('week.next')}
+        disabled={isCurrent}
+        onClick={() => onStep(1)}
+        className="flex size-9 items-center justify-center rounded-card text-ink-2 active:bg-surface-2 disabled:opacity-30"
+      >
+        <ChevronRight className="size-5" />
+      </button>
     </div>
   )
 }
@@ -296,29 +366,29 @@ function MuscleTooltip({
   )
 }
 
-/** Total volume per week — or per day when viewing the 7-day range. */
-function VolumeTrend({ workouts, daily }: { workouts: WithId<Workout>[]; daily: boolean }) {
+/** Total volume per week — or per day when viewing a single Mon–Sun week. */
+function VolumeTrend({ workouts, weekStart }: { workouts: WithId<Workout>[]; weekStart?: string }) {
   const { t } = useTranslation(['analytics', 'common'])
 
   const data = useMemo(() => {
     const totals = bucketedTotals(
       workouts,
       (w) => w.totalVolumeKg ?? 0,
-      daily ? 'day' : 'week',
+      weekStart != null ? 'day' : 'week',
       weekStartKey,
     )
-    if (!daily) return totals
-    // a 7-point series with holes reads badly: zero-fill the window
+    if (weekStart == null) return totals
+    // a 7-point series with holes reads badly: zero-fill Mon–Sun
     const byDay = new Map(totals.map((d) => [d.bucket, d.value]))
     return Array.from({ length: 7 }, (_, i) => {
-      const bucket = toDateKey(subDays(new Date(), 6 - i))
+      const bucket = toDateKey(addDays(parseISO(weekStart), i))
       return { bucket, value: byDay.get(bucket) ?? 0 }
     })
-  }, [workouts, daily])
+  }, [workouts, weekStart])
   if (data.length < 2) return null
 
   return (
-    <Card title={daily ? t('analytics:volumeTrendDaily') : t('analytics:volumeTrend')}>
+    <Card title={weekStart != null ? t('analytics:volumeTrendDaily') : t('analytics:volumeTrend')}>
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -8 }}>

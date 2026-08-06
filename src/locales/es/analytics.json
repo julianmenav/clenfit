@@ -12,11 +12,17 @@
   "volumeTrend": "Volumen por semana",
   "volumeTrendDaily": "Volumen por día",
   "range": {
-    "1w": "7 días",
+    "week": "Semana",
     "4w": "4 sem",
     "3m": "3 meses",
     "1y": "1 año",
     "all": "Todo"
+  },
+  "week": {
+    "current": "Esta semana",
+    "prev": "Semana anterior",
+    "next": "Semana siguiente",
+    "empty": "Sin entrenamientos esta semana."
   },
   "empty": "Entrena unas semanas y aquí verás tus tendencias.",
   "perWeek": "series/semana",
