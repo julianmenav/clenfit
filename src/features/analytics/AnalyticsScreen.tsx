@@ -30,7 +30,6 @@ import {
 import { muscleGroups, type WithId, type Workout } from '@/domain/types'
 import { formatShortDate, toDateKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
-import { OneRmProgressionCard } from './OneRmProgressionCard'
 import { Last7DaysCard } from './Last7DaysCard'
 
 type RangeKey = '1w' | '4w' | '3m' | '1y' | 'all'
@@ -86,7 +85,6 @@ export function AnalyticsScreen() {
         <EmptyState icon={ChartPie} title={t('analytics:empty')} />
       ) : (
         <>
-          <OneRmProgressionCard workouts={workouts} fromDateKey={rangeFromKey} />
           <SetsPerMuscle workouts={filtered} />
           <MuscleBalance workouts={filtered} />
           <RepRanges workouts={filtered} />

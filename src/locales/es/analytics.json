@@ -20,11 +20,6 @@
   },
   "empty": "Entrena unas semanas y aquí verás tus tendencias.",
   "perWeek": "series/semana",
-  "oneRm": {
-    "title": "Progresión 1RM",
-    "exercise": "Ejercicio",
-    "empty": "Necesitas al menos dos sesiones con peso de este ejercicio."
-  },
   "balance": {
     "title": "Equilibrio muscular",
     "push": "Empuje",
