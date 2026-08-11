@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { toDateKey } from '@/lib/dates'
+import { countPrDetails, mergePrDetails } from '@/domain/prDetails'
 import { applySessionPrs, displayPrCount } from '@/domain/prs'
 import { rebuildAllStats, rebuildStatsForExercise } from '@/domain/statsRebuild'
 import { defUsesBodyweight } from '@/domain/volume'
@@ -140,8 +141,8 @@ export function newWorkoutId(uid: string): string {
  * Writes an edited (or retroactively created) completed workout and rebuilds
  * the stats of every exercise involved — removed ones included. The edited doc
  * is injected into the rebuild via `overrideWorkout` so the (possibly stale)
- * cached copy never wins. `prCount` is set to null: attributing records
- * historically would require replaying the whole timeline.
+ * cached copy never wins. `prCount`/`prDetails` are nulled here and re-attributed
+ * by the recompute's full timeline replay right after.
  */
 export async function saveEditedWorkout(
   uid: string,
@@ -157,16 +158,13 @@ export async function saveEditedWorkout(
     exerciseIds: exercises.map((e) => e.exerciseId),
     ...totals,
     prCount: null,
+    prDetails: null,
   }
   setDoc(workoutDoc(uid, workout.id), workout).catch((err) =>
     console.error('[saveEditedWorkout]', err),
   )
   const affected = [...new Set([...previousExerciseIds, ...workout.exerciseIds])]
-  await Promise.all(
-    affected.map((exerciseId) =>
-      recomputeExerciseStats(uid, exerciseId, { overrideWorkout: workout }),
-    ),
-  )
+  await recomputeStatsAndPrs(uid, affected, { overrideWorkout: workout })
 }
 
 export function deleteWorkout(uid: string, workoutId: string): Promise<void> {
@@ -287,19 +285,12 @@ export interface RecomputeOptions {
   overrideWorkout?: WithId<Workout>
 }
 
-/**
- * Rebuilds an exercise's exerciseStats by walking its full history.
- * Used after deleting/editing a past workout (the denormalized stats go stale).
- * Offline, getDocs falls back to the local cache (warm via the history
- * listener); a partial cache self-heals on the next recompute. Because pending
- * deletes/writes may not be visible to the query yet, callers pass the change
- * via `opts` instead of awaiting the write (which offline never settles).
- */
-export async function recomputeExerciseStats(
+/** Completed sessions containing the exercise, with exclude/override applied, ascending. */
+async function queryExerciseSessions(
   uid: string,
   exerciseId: string,
-  opts: RecomputeOptions = {},
-): Promise<void> {
+  opts: RecomputeOptions,
+): Promise<WithId<Workout>[]> {
   const snap = await getDocs(
     query(
       workoutsCol(uid),
@@ -322,37 +313,112 @@ export async function recomputeExerciseStats(
         a.startedAt.seconds - b.startedAt.seconds || a.startedAt.nanoseconds - b.startedAt.nanoseconds,
     )
   }
-
-  const statsRef = exerciseStatsDoc(uid, exerciseId)
-  const rebuilt = rebuildStatsForExercise(sessions, exerciseId)
-  if (!rebuilt) {
-    deleteDoc(statsRef).catch((err) => console.error('[recomputeExerciseStats]', err))
-    return
-  }
-
-  const stats: WithId<ExerciseStats> = {
-    id: exerciseId,
-    exerciseId,
-    ...rebuilt,
-    updatedAt: Timestamp.now(),
-  }
-  setDoc(statsRef, stats).catch((err) => console.error('[recomputeExerciseStats]', err))
-}
-
-/** Deletes a completed workout and rebuilds the stats of its exercises. */
-export async function deleteCompletedWorkout(uid: string, workout: WithId<Workout>): Promise<void> {
-  deleteWorkout(uid, workout.id).catch((err) => console.error('[deleteCompletedWorkout]', err))
-  const unique = [...new Set(workout.exerciseIds)]
-  await Promise.all(
-    unique.map((exerciseId) =>
-      recomputeExerciseStats(uid, exerciseId, { excludeWorkoutId: workout.id }),
-    ),
-  )
+  return sessions
 }
 
 /**
- * Full repair: rebuilds every exerciseStats doc from the completed history and
- * deletes orphaned ones (e.g. records left behind by an old deletion bug).
+ * Rebuilds several exercises' stats by walking their full history (used after
+ * deleting/editing a past workout) and re-attributes the records of every
+ * workout involved (prDetails + prCount). Workout docs get exactly ONE update
+ * each — parallel per-exercise recomputes would race on docs they share.
+ * Legacy docs (prDetails null) are only rewritten when every one of their
+ * exercises is being recomputed (a partial list would lie); the full repair
+ * (recomputeAllExerciseStats) backfills the rest.
+ * Offline, getDocs falls back to the local cache (warm via the history
+ * listener); a partial cache self-heals on the next recompute. Because pending
+ * deletes/writes may not be visible to the query yet, callers pass the change
+ * via `opts` instead of awaiting the write (which offline never settles).
+ */
+export async function recomputeStatsAndPrs(
+  uid: string,
+  exerciseIds: string[],
+  opts: RecomputeOptions = {},
+): Promise<void> {
+  const unique = [...new Set(exerciseIds)]
+  const updatedAt = Timestamp.now()
+  const workoutsById = new Map<string, WithId<Workout>>()
+  const eventsByWorkout = new Map<string, PrDetail[]>()
+  const recomputedPerWorkout = new Map<string, Set<string>>()
+
+  await Promise.all(
+    unique.map(async (exerciseId) => {
+      const sessions = await queryExerciseSessions(uid, exerciseId, opts)
+      for (const w of sessions) {
+        workoutsById.set(w.id, w)
+        const touched = recomputedPerWorkout.get(w.id) ?? new Set<string>()
+        touched.add(exerciseId)
+        recomputedPerWorkout.set(w.id, touched)
+      }
+      const statsRef = exerciseStatsDoc(uid, exerciseId)
+      const rebuilt = rebuildStatsForExercise(sessions, exerciseId)
+      if (!rebuilt) {
+        deleteDoc(statsRef).catch((err) => console.error('[recomputeStatsAndPrs]', err))
+        return
+      }
+      for (const [workoutId, events] of rebuilt.prEventsByWorkout) {
+        eventsByWorkout.set(workoutId, [...(eventsByWorkout.get(workoutId) ?? []), ...events])
+      }
+      const { prEventsByWorkout: _events, ...fields } = rebuilt
+      const stats: WithId<ExerciseStats> = { id: exerciseId, exerciseId, ...fields, updatedAt }
+      setDoc(statsRef, stats).catch((err) => console.error('[recomputeStatsAndPrs]', err))
+    }),
+  )
+
+  // one update per touched workout: swap the recomputed exercises' record entries
+  const recomputedIds = new Set(unique)
+  const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = []
+  for (const [workoutId, w] of workoutsById) {
+    const knowsAll = w.exercises.every((e) =>
+      recomputedPerWorkout.get(workoutId)?.has(e.exerciseId),
+    )
+    if (w.prDetails == null && !knowsAll) continue // legacy: don't write a partial lie
+    const merged = mergePrDetails(w.prDetails ?? [], recomputedIds, eventsByWorkout.get(workoutId) ?? [])
+    const prCount = countPrDetails(merged)
+    if (w.prDetails != null && prCount === w.prCount && samePrDetails(w.prDetails, merged)) continue
+    ops.push((batch) =>
+      batch.update(doc(db, 'users', uid, 'workouts', workoutId), { prDetails: merged, prCount }),
+    )
+  }
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = writeBatch(db)
+    for (const op of ops.slice(i, i + 400)) op(batch)
+    batch.commit().catch((err) => console.error('[recomputeStatsAndPrs]', err))
+  }
+}
+
+function samePrDetails(a: PrDetail[], b: PrDetail[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((d, i) => {
+    const e = b[i]
+    return (
+      d.exerciseId === e.exerciseId &&
+      d.type === e.type &&
+      d.value === e.value &&
+      d.previousValue === e.previousValue
+    )
+  })
+}
+
+/** Single-exercise recompute (kept for one-off callers). */
+export function recomputeExerciseStats(
+  uid: string,
+  exerciseId: string,
+  opts: RecomputeOptions = {},
+): Promise<void> {
+  return recomputeStatsAndPrs(uid, [exerciseId], opts)
+}
+
+/** Deletes a completed workout and rebuilds the stats/records of its exercises. */
+export async function deleteCompletedWorkout(uid: string, workout: WithId<Workout>): Promise<void> {
+  deleteWorkout(uid, workout.id).catch((err) => console.error('[deleteCompletedWorkout]', err))
+  await recomputeStatsAndPrs(uid, workout.exerciseIds, { excludeWorkoutId: workout.id })
+}
+
+/**
+ * Full repair: rebuilds every exerciseStats doc from the completed history,
+ * deletes orphaned ones (e.g. records left behind by an old deletion bug) and
+ * backfills every workout's prDetails/prCount — it replays the whole timeline,
+ * so pre-feature docs get their records attributed too.
  * Writes are chunked and not awaited (offline they stay queued).
  */
 export async function recomputeAllExerciseStats(
@@ -365,10 +431,24 @@ export async function recomputeAllExerciseStats(
   const rebuilt = rebuildAllStats(workoutsSnap.docs.map((d) => d.data()))
   const updatedAt = Timestamp.now()
 
+  const eventsByWorkout = new Map<string, PrDetail[]>()
   const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = []
   for (const [exerciseId, stats] of rebuilt) {
+    const { prEventsByWorkout, ...fields } = stats
+    for (const [workoutId, events] of prEventsByWorkout) {
+      eventsByWorkout.set(workoutId, [...(eventsByWorkout.get(workoutId) ?? []), ...events])
+    }
     ops.push((batch) =>
-      batch.set(exerciseStatsDoc(uid, exerciseId), { id: exerciseId, exerciseId, ...stats, updatedAt }),
+      batch.set(exerciseStatsDoc(uid, exerciseId), { id: exerciseId, exerciseId, ...fields, updatedAt }),
+    )
+  }
+  for (const d of workoutsSnap.docs) {
+    const w = d.data()
+    const details = eventsByWorkout.get(w.id) ?? []
+    const prCount = countPrDetails(details)
+    if (w.prDetails != null && prCount === w.prCount && samePrDetails(w.prDetails, details)) continue
+    ops.push((batch) =>
+      batch.update(doc(db, 'users', uid, 'workouts', w.id), { prDetails: details, prCount }),
     )
   }
   let removed = 0
