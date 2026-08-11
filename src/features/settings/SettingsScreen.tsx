@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { signOut } from 'firebase/auth'
 import { updateDoc } from 'firebase/firestore'
-import { Check, Download, LogOut, RefreshCw, Share, SquarePlus } from 'lucide-react'
+import { BellRing, Check, Download, LogOut, RefreshCw, Share, SquarePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { NumericField } from '@/components/ui/NumericField'
@@ -111,6 +112,16 @@ export function SettingsScreen() {
             <span className="text-sm text-ink-3">{t('common:units.kg')}</span>
           </div>
         </div>
+      </Section>
+
+      <Section title={t('settings:reminders.title')} help={t('settings:reminders.help')}>
+        <Link
+          to="/recordatorios"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-card bg-surface-2 font-medium"
+        >
+          <BellRing className="size-4" />
+          {t('settings:reminders.manage')}
+        </Link>
       </Section>
 
       <InstallSection />

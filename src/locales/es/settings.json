@@ -1,5 +1,10 @@
 {
   "title": "Ajustes",
+  "reminders": {
+    "title": "Recordatorios",
+    "help": "Mensajes motivacionales al empezar, al terminar o antes de un ejercicio.",
+    "manage": "Gestionar recordatorios"
+  },
   "theme": {
     "title": "Tema",
     "system": "Sistema",
