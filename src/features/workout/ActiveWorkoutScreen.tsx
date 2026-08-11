@@ -18,8 +18,10 @@ import { formatClock } from '@/lib/dates'
 import { useOnline } from '@/lib/useOnline'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { useActiveWorkoutStore } from '@/store/activeWorkout'
+import { useRemindersStore } from '@/store/reminders'
 import { useRestTimerStore } from '@/store/restTimer'
 import { ExercisePicker } from '@/features/exercises/ExercisePicker'
+import { useFireReminders } from '@/features/reminders/useFireReminders'
 import { ExerciseCard } from './ExerciseCard'
 import { ExerciseHistorySheet } from './ExerciseHistorySheet'
 import { FinishWorkoutSheet, type FinishOptions } from './FinishWorkoutSheet'
@@ -38,6 +40,7 @@ export function ActiveWorkoutScreen() {
   const startRest = useRestTimerStore((s) => s.start)
   const online = useOnline()
   const hasPendingWrites = useWorkoutHasPendingWrites(workout?.id)
+  const fire = useFireReminders()
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [swapIndex, setSwapIndex] = useState<number | null>(null)
@@ -121,6 +124,16 @@ export function ActiveWorkoutScreen() {
     firePrToast(exIndex, setIndex, set, false)
   }
 
+  /** First interaction with an exercise card = "about to start it". */
+  function touchExercise(exIndex: number) {
+    if (!workout) return
+    const ex = workout.exercises[exIndex]
+    fire(
+      { kind: 'exerciseTouched', exerciseId: ex.exerciseId, muscle: ex.muscle },
+      { id: workout.id, routineId: workout.routineId },
+    )
+  }
+
   function completeSet(exIndex: number, setIndex: number) {
     if (!workout) return
     const ex = workout.exercises[exIndex]
@@ -131,6 +144,8 @@ export function ActiveWorkoutScreen() {
       dismissPrToast(`${exIndex}:${setIndex}`)
       return
     }
+
+    touchExercise(exIndex)
 
     // ghost values (last session or current-session weight fallback) if the user hasn't typed anything
     const ghost = ghostForSet(ex.sets, setIndex, statsMap?.get(ex.exerciseId)?.lastPerformance?.sets)
@@ -170,6 +185,9 @@ export function ActiveWorkoutScreen() {
       return
     }
     useRestTimerStore.getState().stop()
+    // the finish message survives the redirect: the overlay lives in AppLayout
+    fire({ kind: 'workoutFinish' }, { id: result.workout.id, routineId: result.workout.routineId })
+    useRemindersStore.getState().resetSession()
 
     // remember the entered body weight as the default for the next session
     if (opts.bodyWeightKg != null && opts.bodyWeightKg !== (profile?.settings.bodyWeightKg ?? null)) {
@@ -240,28 +258,30 @@ export function ActiveWorkoutScreen() {
       ) : (
         <div className="flex flex-col gap-3">
           {workout.exercises.map((ex, i) => (
-            <ExerciseCard
-              key={`${ex.exerciseId}-${i}`}
-              exercise={ex}
-              stats={statsMap?.get(ex.exerciseId)}
-              onPatchSet={(setIndex, patch) => {
-                store.updateSet(uid, i, setIndex, patch)
-                reevaluateSet(i, setIndex, patch)
-              }}
-              onPatchWeight={(setIndex, weightKg) => {
-                store.updateSetWeight(uid, i, setIndex, weightKg)
-                reevaluateSet(i, setIndex, { weightKg })
-              }}
-              onCycleType={(setIndex) => store.cycleSetType(uid, i, setIndex)}
-              onCompleteSet={(setIndex) => completeSet(i, setIndex)}
-              onAddSet={() => store.addSet(uid, i)}
-              onRemoveLastSet={() => store.removeSet(uid, i, ex.sets.length - 1)}
-              onSwap={() => setSwapIndex(i)}
-              onRemove={() => setRemoveIndex(i)}
-              onReorder={workout.exercises.length > 1 ? () => setReorderOpen(true) : undefined}
-              onSetNotes={(notes) => store.setExerciseNotes(uid, i, notes)}
-              onShowHistory={() => setHistoryExerciseId(ex.exerciseId)}
-            />
+            // focus-capture: typing a weight/reps counts as "about to start" the exercise
+            <div key={`${ex.exerciseId}-${i}`} onFocusCapture={() => touchExercise(i)}>
+              <ExerciseCard
+                exercise={ex}
+                stats={statsMap?.get(ex.exerciseId)}
+                onPatchSet={(setIndex, patch) => {
+                  store.updateSet(uid, i, setIndex, patch)
+                  reevaluateSet(i, setIndex, patch)
+                }}
+                onPatchWeight={(setIndex, weightKg) => {
+                  store.updateSetWeight(uid, i, setIndex, weightKg)
+                  reevaluateSet(i, setIndex, { weightKg })
+                }}
+                onCycleType={(setIndex) => store.cycleSetType(uid, i, setIndex)}
+                onCompleteSet={(setIndex) => completeSet(i, setIndex)}
+                onAddSet={() => store.addSet(uid, i)}
+                onRemoveLastSet={() => store.removeSet(uid, i, ex.sets.length - 1)}
+                onSwap={() => setSwapIndex(i)}
+                onRemove={() => setRemoveIndex(i)}
+                onReorder={workout.exercises.length > 1 ? () => setReorderOpen(true) : undefined}
+                onSetNotes={(notes) => store.setExerciseNotes(uid, i, notes)}
+                onShowHistory={() => setHistoryExerciseId(ex.exerciseId)}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -332,6 +352,7 @@ export function ActiveWorkoutScreen() {
         onConfirm={() => {
           setDiscardOpen(false)
           useRestTimerStore.getState().stop()
+          useRemindersStore.getState().resetSession()
           store.discard(uid)
         }}
         onCancel={() => setDiscardOpen(false)}
