@@ -4,6 +4,7 @@ import { useUser } from '@/app/AuthProvider'
 import type {
   CustomExercise,
   ExerciseStats,
+  Reminder,
   Routine,
   UserProfile,
   WithId,
@@ -12,6 +13,7 @@ import type {
 import {
   customExercisesCol,
   exerciseStatsCol,
+  remindersCol,
   routinesCol,
   userDoc,
   workoutsCol,
@@ -156,6 +158,11 @@ export function useRoutines(): WithId<Routine>[] | undefined {
 export function useCustomExercises(): WithId<CustomExercise>[] | undefined {
   const uid = useUser().uid
   return useLiveQuery(() => query(customExercisesCol(uid), orderBy('createdAt')), [uid])
+}
+
+export function useReminders(): WithId<Reminder>[] | undefined {
+  const uid = useUser().uid
+  return useLiveQuery(() => query(remindersCol(uid), orderBy('createdAt')), [uid])
 }
 
 /** Stats for all exercises with history (map keyed by exerciseId). */
