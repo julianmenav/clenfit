@@ -5,13 +5,14 @@ import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
 import { BackButton } from '@/components/ui/BackButton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { useWorkout } from '@/data/hooks'
+import { useUserProfile, useWorkout } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { deleteCompletedWorkout } from '@/data/workoutMutations'
 import { exerciseVolume, isWorkingSet } from '@/domain/volume'
 import { formatDay, formatDuration } from '@/lib/dates'
 import { formatKg, formatSet } from '@/lib/formatSet'
 import type { SetType, WorkoutExercise } from '@/domain/types'
+import { PrDetailsCard } from './PrDetailsCard'
 
 export function WorkoutDetailScreen() {
   const { workoutId = '' } = useParams()
@@ -19,6 +20,7 @@ export function WorkoutDetailScreen() {
   const navigate = useNavigate()
   const { t } = useTranslation(['history', 'workout', 'common'])
   const workout = useWorkout(workoutId)
+  const profile = useUserProfile()
   const { byId } = useExerciseIndex()
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -79,11 +81,19 @@ export function WorkoutDetailScreen() {
         <Stat label={t('workout:sets')} value={String(workout.totalSets ?? 0)} />
       </div>
 
-      {(workout.prCount ?? 0) > 0 && (
-        <p className="flex items-center gap-2 rounded-card bg-status-warn/10 px-3 py-2 text-sm font-medium text-status-warn">
-          <Trophy className="size-4" />
-          {t('workout:finishSheet.prs', { count: workout.prCount ?? 0 })}
-        </p>
+      {workout.prDetails && workout.prDetails.length > 0 ? (
+        <PrDetailsCard
+          details={workout.prDetails}
+          formula={profile?.settings.oneRmFormula ?? 'epley'}
+        />
+      ) : (
+        // legacy sessions (pre-detail): count-only banner
+        (workout.prCount ?? 0) > 0 && (
+          <p className="flex items-center gap-2 rounded-card bg-status-warn/10 px-3 py-2 text-sm font-medium text-status-warn">
+            <Trophy className="size-4" />
+            {t('workout:finishSheet.prs', { count: workout.prCount ?? 0 })}
+          </p>
+        )
       )}
 
       <div className="flex flex-col gap-3">
