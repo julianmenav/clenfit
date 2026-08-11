@@ -21,6 +21,7 @@ import { pruneIncomplete, summarizeWorkout } from '@/domain/workoutSummary'
 import type {
   ExerciseDef,
   ExerciseStats,
+  PrDetail,
   PrType,
   Routine,
   RoutineSlot,
@@ -198,11 +199,13 @@ export function finishWorkout(
 
   const batch = writeBatch(db)
   let prCount = 0
+  const prDetails: PrDetail[] = []
 
   for (const ex of exercises) {
     const prev = statsMap.get(ex.exerciseId) ?? null
-    const { newPrs, prs } = applySessionPrs(ex, prev, active.id, active.dateKey, bodyWeightKg)
+    const { newPrs, prs, details } = applySessionPrs(ex, prev, active.id, active.dateKey, bodyWeightKg)
     prCount += displayPrCount(newPrs)
+    prDetails.push(...details)
     if (newPrs.length > 0) newPrsByExercise.set(ex.exerciseId, newPrs)
 
     const stats: WithId<ExerciseStats> = {
@@ -226,6 +229,7 @@ export function finishWorkout(
     exerciseIds: exercises.map((e) => e.exerciseId),
     ...totals,
     prCount,
+    prDetails,
   }
   batch.set(workoutDoc(uid, active.id), workout)
 
