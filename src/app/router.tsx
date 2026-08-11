@@ -12,6 +12,7 @@ import { WorkoutDetailScreen } from '@/features/history/WorkoutDetailScreen'
 import { WorkoutEditorScreen } from '@/features/history/WorkoutEditorScreen'
 import { LibraryScreen } from '@/features/exercises/LibraryScreen'
 import { ExerciseDetailScreen } from '@/features/exercises/ExerciseDetailScreen'
+import { ReminderEditorScreen } from '@/features/reminders/ReminderEditorScreen'
 import { RemindersScreen } from '@/features/reminders/RemindersScreen'
 import { RoutinesScreen } from '@/features/routines/RoutinesScreen'
 import { RoutineEditorScreen } from '@/features/routines/RoutineEditorScreen'
@@ -59,6 +60,8 @@ export const router = createBrowserRouter([
               },
               { path: '/ajustes', element: <SettingsScreen /> },
               { path: '/recordatorios', element: <RemindersScreen /> },
+              { path: '/recordatorios/nuevo', element: <ReminderEditorScreen /> },
+              { path: '/recordatorios/:reminderId', element: <ReminderEditorScreen /> },
             ],
           },
         ],
