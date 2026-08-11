@@ -8,9 +8,10 @@ import routines from './locales/es/routines.json'
 import history from './locales/es/history.json'
 import analytics from './locales/es/analytics.json'
 import settings from './locales/es/settings.json'
+import reminders from './locales/es/reminders.json'
 
 export const resources = {
-  es: { common, auth, workout, exercises, routines, history, analytics, settings },
+  es: { common, auth, workout, exercises, routines, history, analytics, settings, reminders },
 } as const
 
 i18n.use(initReactI18next).init({

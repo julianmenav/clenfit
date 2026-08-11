@@ -253,6 +253,32 @@ export const routineSchema = z.object({
 })
 export type Routine = z.infer<typeof routineSchema>
 
+/* -------------------------------- Reminders ------------------------------- */
+
+export const reminderTriggerSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('workoutStart') }),
+  z.object({ type: z.literal('workoutFinish') }),
+  z.object({
+    type: z.literal('beforeExercise'),
+    exerciseId: z.string(),
+    /** Copy of the name: survives renames and retired exercises. */
+    exerciseName: z.string(),
+  }),
+  z.object({ type: z.literal('beforeMuscle'), muscle: z.enum(muscleGroups) }),
+])
+export type ReminderTrigger = z.infer<typeof reminderTriggerSchema>
+
+export const reminderSchema = z.object({
+  enabled: z.boolean(),
+  trigger: reminderTriggerSchema,
+  /** Routines it applies to; null = every workout (freestyle included). */
+  routineIds: z.array(z.string()).nullable(),
+  /** One is shown at random each time it fires. */
+  messages: z.array(z.string().min(1)).min(1),
+  createdAt: z.instanceof(Timestamp),
+})
+export type Reminder = z.infer<typeof reminderSchema>
+
 /* ------------------------------- User profile ----------------------------- */
 
 export const userSettingsSchema = z.object({

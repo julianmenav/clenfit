@@ -1,0 +1,80 @@
+{
+  "title": "Recordatorios",
+  "add": "Nuevo recordatorio",
+  "empty": {
+    "title": "Sin recordatorios",
+    "body": "Crea mensajes que aparecerán al entrenar: al empezar, al terminar o antes de un ejercicio."
+  },
+  "messageCount_one": "{{count}} mensaje",
+  "messageCount_other": "{{count}} mensajes",
+  "triggers": {
+    "workoutStart": "Al empezar",
+    "workoutFinish": "Al terminar",
+    "beforeExercise": "Antes de {{name}}",
+    "beforeMuscle": "Antes de {{muscle}}"
+  },
+  "overlay": {
+    "label": "Recordatorio",
+    "dismiss": "Toca para continuar"
+  },
+  "editor": {
+    "titleNew": "Nuevo recordatorio",
+    "titleEdit": "Editar recordatorio",
+    "enabled": "Activo",
+    "when": "Cuándo",
+    "pickExercise": "Elegir ejercicio",
+    "pickMuscle": "Grupo muscular",
+    "routines": "Rutinas",
+    "routinesHelp": "Sin selección se aplica a todos los entrenamientos.",
+    "allRoutines": "Todos los entrenamientos",
+    "messages": "Mensajes",
+    "messagesHelp": "Si hay varios, cada vez se muestra uno al azar.",
+    "messagePlaceholder": "Escribe tu mensaje…",
+    "addMessage": "Añadir mensaje",
+    "removeMessage": "Quitar mensaje",
+    "packs": "Packs de mensajes",
+    "packsHelp": "Añaden sus frases a la lista; luego edítalas a tu gusto.",
+    "save": "Guardar",
+    "delete": "Eliminar recordatorio",
+    "deleteConfirm": "¿Eliminar este recordatorio?"
+  },
+  "packs": {
+    "beast": {
+      "name": "Modo bestia",
+      "messages": [
+        "FOCUS. Desde la primera rep hasta la última.",
+        "No hay nadie más en el gym. Solo tú y el puto hierro.",
+        "Nadie te mira. Nadie importa. APRIETA.",
+        "No has venido a pasar el rato. Has venido a dejarlo todo.",
+        "La última rep es donde empieza el crecimiento. VE A POR ELLA."
+      ]
+    },
+    "focus": {
+      "name": "Foco total",
+      "messages": [
+        "Respira. Técnica limpia. Presencia total.",
+        "Cada rep con intención. Siente el músculo.",
+        "Controla el peso. Que no te controle él a ti.",
+        "El móvil puede esperar. Esta serie no."
+      ]
+    },
+    "firstRep": {
+      "name": "Primera rep, última rep",
+      "messages": [
+        "La primera rep con la misma seriedad que la última.",
+        "Nada de reps basura. Cada serie cuenta.",
+        "Si vas a hacerlo, hazlo de verdad.",
+        "Deja el ego fuera: peso que puedas controlar, esfuerzo que no puedas fingir."
+      ]
+    },
+    "closing": {
+      "name": "Cierre",
+      "messages": [
+        "Has venido. Has trabajado. Eso ya te separa del 90%.",
+        "Otro día que suma. La constancia es el verdadero PR.",
+        "Hoy has ganado la batalla más difícil: aparecer.",
+        "Descansa, come y vuelve. El progreso se cocina fuera del gym."
+      ]
+    }
+  }
+}

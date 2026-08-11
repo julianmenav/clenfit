@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase'
 import {
   customExerciseSchema,
   exerciseStatsSchema,
+  reminderSchema,
   routineSchema,
   workoutSchema,
   type WithId,
@@ -49,6 +50,7 @@ export const workoutConverter = converterFor(workoutSchema)
 export const exerciseStatsConverter = converterFor(exerciseStatsSchema)
 export const routineConverter = converterFor(routineSchema)
 export const customExerciseConverter = converterFor(customExerciseSchema)
+export const reminderConverter = converterFor(reminderSchema)
 
 // Typed refs — everything lives under users/{uid}
 export const workoutsCol = (uid: string) =>
@@ -70,5 +72,10 @@ export const customExercisesCol = (uid: string) =>
   collection(db, 'users', uid, 'customExercises').withConverter(customExerciseConverter)
 export const customExerciseDoc = (uid: string, id: string) =>
   doc(db, 'users', uid, 'customExercises', id).withConverter(customExerciseConverter)
+
+export const remindersCol = (uid: string) =>
+  collection(db, 'users', uid, 'reminders').withConverter(reminderConverter)
+export const reminderDoc = (uid: string, id: string) =>
+  doc(db, 'users', uid, 'reminders', id).withConverter(reminderConverter)
 
 export const userDoc = (uid: string) => doc(db, 'users', uid)

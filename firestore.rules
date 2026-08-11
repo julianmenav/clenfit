@@ -11,6 +11,9 @@ service cloud.firestore {
       match /routines/{docId} {
         allow read, write: if isOwner(uid);
       }
+      match /reminders/{docId} {
+        allow read, write: if isOwner(uid);
+      }
       match /exerciseStats/{docId} {
         allow read, write: if isOwner(uid);
       }

@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import { describe, expect, it } from 'vitest'
-import { prDetailSchema, workoutExerciseSchema, workoutSchema } from './types'
+import { prDetailSchema, reminderSchema, workoutExerciseSchema, workoutSchema } from './types'
 
 const legacyExercise = {
   exerciseId: 'bb-bench-press',
@@ -59,5 +59,37 @@ describe('workoutSchema.prDetails', () => {
     }
     expect(prDetailSchema.parse(detail)).toEqual(detail)
     expect(prDetailSchema.parse({ ...detail, previousValue: null }).previousValue).toBeNull()
+  })
+})
+
+describe('reminderSchema', () => {
+  const base = {
+    enabled: true,
+    routineIds: null,
+    messages: ['FOCUS.'],
+    createdAt: Timestamp.now(),
+  }
+
+  it('acepta los cuatro tipos de disparador', () => {
+    expect(() => reminderSchema.parse({ ...base, trigger: { type: 'workoutStart' } })).not.toThrow()
+    expect(() => reminderSchema.parse({ ...base, trigger: { type: 'workoutFinish' } })).not.toThrow()
+    expect(() =>
+      reminderSchema.parse({
+        ...base,
+        trigger: { type: 'beforeExercise', exerciseId: 'press', exerciseName: 'Press banca' },
+      }),
+    ).not.toThrow()
+    expect(() =>
+      reminderSchema.parse({ ...base, trigger: { type: 'beforeMuscle', muscle: 'quads' } }),
+    ).not.toThrow()
+  })
+
+  it('rechaza mensajes vacíos', () => {
+    expect(() =>
+      reminderSchema.parse({ ...base, messages: [], trigger: { type: 'workoutStart' } }),
+    ).toThrow()
+    expect(() =>
+      reminderSchema.parse({ ...base, messages: [''], trigger: { type: 'workoutStart' } }),
+    ).toThrow()
   })
 })
