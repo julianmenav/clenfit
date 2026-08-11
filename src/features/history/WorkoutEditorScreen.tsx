@@ -60,6 +60,7 @@ function CreateEditor() {
       totalVolumeKg: null,
       totalSets: null,
       prCount: null,
+      prDetails: null,
       setsByMuscle: null,
     }
   })

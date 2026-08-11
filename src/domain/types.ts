@@ -156,6 +156,29 @@ export const workoutExerciseSchema = z.object({
 })
 export type WorkoutExercise = z.infer<typeof workoutExerciseSchema>
 
+// Record types live here (not in the stats section below) because the workout
+// doc embeds them via prDetails.
+export const prTypes = [
+  'heaviestWeightKg',
+  'best1RmEpley',
+  'best1RmBrzycki',
+  'bestSetVolumeKg',
+  'bestSessionVolumeKg',
+  'mostReps',
+] as const
+export type PrType = (typeof prTypes)[number]
+
+/** One record beaten in a specific workout (denormalized onto the workout doc). */
+export const prDetailSchema = z.object({
+  exerciseId: z.string(),
+  exerciseName: z.string(),
+  type: z.enum(prTypes),
+  value: z.number(),
+  /** Mark that was beaten; null = first record of this type for the exercise. */
+  previousValue: z.number().nullable(),
+})
+export type PrDetail = z.infer<typeof prDetailSchema>
+
 export const workoutSchema = z.object({
   status: z.enum(['active', 'completed']),
   name: z.string(),
@@ -175,6 +198,8 @@ export const workoutSchema = z.object({
   totalVolumeKg: z.number().nullable(),
   totalSets: z.number().int().nullable(),
   prCount: z.number().int().nullable(),
+  /** Which records this session set. null = written before the feature (see prCount). */
+  prDetails: z.array(prDetailSchema).nullable().default(null),
   setsByMuscle: z.record(z.string(), z.number()).nullable(),
 })
 export type Workout = z.infer<typeof workoutSchema>
@@ -187,16 +212,6 @@ export const prRecordSchema = z.object({
   dateKey: z.string(),
 })
 export type PrRecord = z.infer<typeof prRecordSchema>
-
-export const prTypes = [
-  'heaviestWeightKg',
-  'best1RmEpley',
-  'best1RmBrzycki',
-  'bestSetVolumeKg',
-  'bestSessionVolumeKg',
-  'mostReps',
-] as const
-export type PrType = (typeof prTypes)[number]
 
 export const exerciseStatsSchema = z.object({
   exerciseId: z.string(),

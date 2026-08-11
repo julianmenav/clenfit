@@ -115,6 +115,7 @@ export function startWorkout(
     totalVolumeKg: null,
     totalSets: null,
     prCount: null,
+    prDetails: null,
     setsByMuscle: null,
   }
 

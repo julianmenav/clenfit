@@ -50,6 +50,7 @@ function workout(id: string, dateKey: string, exercises: WorkoutExercise[]): Wit
     totalVolumeKg: null,
     totalSets: null,
     prCount: null,
+    prDetails: null,
     setsByMuscle: null,
   }
 }
