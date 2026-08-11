@@ -9,6 +9,7 @@ import { useActiveWorkout } from '@/data/hooks'
 import { saveWorkout } from '@/data/workoutMutations'
 import { flushPendingSave, useActiveWorkoutStore } from '@/store/activeWorkout'
 import { PwaUpdatePrompt } from '@/app/PwaUpdatePrompt'
+import { ReminderOverlay } from '@/features/reminders/ReminderOverlay'
 import { ActiveSessionBar } from '@/features/workout/ActiveSessionBar'
 import { RestTimerWatcher } from '@/features/workout/RestTimerWatcher'
 import { useStartWorkout } from '@/features/workout/useStartWorkout'
@@ -51,6 +52,7 @@ export function AppLayout() {
       <RemoteWorkoutHydrator />
       <RestTimerWatcher />
       <PwaUpdatePrompt />
+      <ReminderOverlay />
 
       <main className="pt-safe w-full flex-1 pb-28 lg:col-start-2 lg:row-start-1 lg:pb-10 lg:pt-4">
         <OfflineBanner />

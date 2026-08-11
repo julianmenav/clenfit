@@ -62,3 +62,25 @@ body {
 @utility top-safe {
   top: env(safe-area-inset-top);
 }
+
+/* Reminder overlay: each word punches in with a slight rise */
+@keyframes reminder-word {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reminder-word {
+  opacity: 0;
+  animation: reminder-word 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-word {
+    animation: none;
+    opacity: 1;
+  }
+}
