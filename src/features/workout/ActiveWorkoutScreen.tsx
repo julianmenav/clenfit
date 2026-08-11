@@ -55,6 +55,9 @@ export function ActiveWorkoutScreen() {
   // redirect, since clearing re-renders before the router transition commits).
   const finishedIdRef = useRef<string | null>(null)
 
+  // live PR toasts per set, so a misclick's toast can be retracted on edit/uncheck
+  const prToastIds = useRef(new Map<string, string | number>())
+
   if (!workout) {
     return (
       <Navigate
@@ -66,6 +69,58 @@ export function ActiveWorkoutScreen() {
 
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000 - workout.startedAt.seconds))
 
+  function dismissPrToast(key: string) {
+    const id = prToastIds.current.get(key)
+    if (id != null) {
+      toast.dismiss(id)
+      prToastIds.current.delete(key)
+    }
+  }
+
+  /**
+   * Live records for a completed set (against history + what's already been
+   * done this session). `set` must carry the definitive values; the store is
+   * read fresh because mutations land synchronously within the same tick.
+   */
+  function firePrToast(exIndex: number, setIndex: number, set: SetEntry, vibrate: boolean) {
+    const w = useActiveWorkoutStore.getState().workout ?? workout
+    if (!w) return
+    const ex = w.exercises[exIndex]
+    // exclude the evaluated slot by position: the store clones set objects on
+    // mutate, so identity checks against fresh state would miss it
+    const priorSets = w.exercises.flatMap((e, ei) =>
+      e.exerciseId === ex.exerciseId
+        ? e.sets.filter((s, si) => s.completed && !(ei === exIndex && si === setIndex))
+        : [],
+    )
+    const stats = statsMap?.get(ex.exerciseId)
+    const bodyWeightKg = ex.usesBodyweight
+      ? (w.bodyWeightKg ?? profile?.settings.bodyWeightKg ?? null)
+      : null
+    const prs = detectLiveSetPrs(set, priorSets, stats, bodyWeightKg)
+    if (prs.length > 0) {
+      const labels = [...new Set(prs.map((p) => t(`workout:pr.types.${prDisplayType(p)}`)))]
+      const id = toast.success(t('workout:pr.toast', { exercise: ex.exerciseName }), {
+        description: labels.join(' · '),
+      })
+      prToastIds.current.set(`${exIndex}:${setIndex}`, id)
+      if (vibrate) navigator.vibrate?.(100)
+    } else if (vibrate && isBaselineSession(stats) && priorSets.length === 0) {
+      toast.message(t('workout:pr.baseline', { exercise: ex.exerciseName }))
+    }
+  }
+
+  /** A completed set was edited: retract the stale toast and re-run detection. */
+  function reevaluateSet(exIndex: number, setIndex: number, patch: Partial<SetEntry>) {
+    const valueKeys = ['weightKg', 'reps', 'durationSeconds', 'distanceMeters'] as const
+    if (!valueKeys.some((k) => k in patch)) return
+    const current = useActiveWorkoutStore.getState().workout
+    const set = current?.exercises[exIndex]?.sets[setIndex]
+    if (!current || !set?.completed) return
+    dismissPrToast(`${exIndex}:${setIndex}`)
+    firePrToast(exIndex, setIndex, set, false)
+  }
+
   function completeSet(exIndex: number, setIndex: number) {
     if (!workout) return
     const ex = workout.exercises[exIndex]
@@ -73,6 +128,7 @@ export function ActiveWorkoutScreen() {
 
     if (set.completed) {
       store.updateSet(uid, exIndex, setIndex, { completed: false })
+      dismissPrToast(`${exIndex}:${setIndex}`)
       return
     }
 
@@ -95,25 +151,7 @@ export function ActiveWorkoutScreen() {
     if (!hasData) return
 
     store.updateSet(uid, exIndex, setIndex, merged)
-
-    // live records (against history + what's already been done this session)
-    const priorSets = workout.exercises
-      .filter((e) => e.exerciseId === ex.exerciseId)
-      .flatMap((e) => e.sets.filter((s) => s.completed && s !== set))
-    const stats = statsMap?.get(ex.exerciseId)
-    const bodyWeightKg = ex.usesBodyweight
-      ? (workout.bodyWeightKg ?? profile?.settings.bodyWeightKg ?? null)
-      : null
-    const prs = detectLiveSetPrs(merged, priorSets, stats, bodyWeightKg)
-    if (prs.length > 0) {
-      const labels = [...new Set(prs.map((p) => t(`workout:pr.types.${prDisplayType(p)}`)))]
-      toast.success(t('workout:pr.toast', { exercise: ex.exerciseName }), {
-        description: labels.join(' · '),
-      })
-      navigator.vibrate?.(100)
-    } else if (isBaselineSession(stats) && priorSets.length === 0) {
-      toast.message(t('workout:pr.baseline', { exercise: ex.exerciseName }))
-    }
+    firePrToast(exIndex, setIndex, merged, true)
 
     // automatic rest
     const restSettings = profile?.settings.restTimer
@@ -206,10 +244,14 @@ export function ActiveWorkoutScreen() {
               key={`${ex.exerciseId}-${i}`}
               exercise={ex}
               stats={statsMap?.get(ex.exerciseId)}
-              onPatchSet={(setIndex, patch) => store.updateSet(uid, i, setIndex, patch)}
-              onPatchWeight={(setIndex, weightKg) =>
+              onPatchSet={(setIndex, patch) => {
+                store.updateSet(uid, i, setIndex, patch)
+                reevaluateSet(i, setIndex, patch)
+              }}
+              onPatchWeight={(setIndex, weightKg) => {
                 store.updateSetWeight(uid, i, setIndex, weightKg)
-              }
+                reevaluateSet(i, setIndex, { weightKg })
+              }}
               onCycleType={(setIndex) => store.cycleSetType(uid, i, setIndex)}
               onCompleteSet={(setIndex) => completeSet(i, setIndex)}
               onAddSet={() => store.addSet(uid, i)}
