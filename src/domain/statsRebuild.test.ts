@@ -125,6 +125,45 @@ describe('reconstrucción con peso corporal', () => {
   })
 })
 
+describe('prEventsByWorkout', () => {
+  it('la primera sesión no emite eventos; las siguientes sí, con la marca anterior', () => {
+    const sessions = [
+      workout('w1', '2026-01-05', [exercise('press', [set({ weightKg: 80, reps: 5 })])]),
+      workout('w2', '2026-01-12', [exercise('press', [set({ weightKg: 100, reps: 3 })])]),
+    ]
+    const stats = rebuildStatsForExercise(sessions, 'press')!
+    expect(stats.prEventsByWorkout.has('w1')).toBe(false)
+    const w2 = stats.prEventsByWorkout.get('w2')!
+    expect(w2.find((e) => e.type === 'heaviestWeightKg')).toMatchObject({
+      exerciseId: 'press',
+      value: 100,
+      previousValue: 80,
+    })
+  })
+
+  it('al quitar la sesión del récord, el evento migra a la sesión que ahora lo tiene', () => {
+    const all = [
+      workout('w1', '2026-01-05', [exercise('press', [set({ weightKg: 80, reps: 5 })])]),
+      workout('w2', '2026-01-12', [exercise('press', [set({ weightKg: 100, reps: 3 })])]),
+      workout('w3', '2026-01-19', [exercise('press', [set({ weightKg: 85, reps: 5 })])]),
+    ]
+    // with w2 present, w3 sets no weight record
+    expect(
+      rebuildStatsForExercise(all, 'press')!
+        .prEventsByWorkout.get('w3')
+        ?.some((e) => e.type === 'heaviestWeightKg') ?? false,
+    ).toBe(false)
+    // without w2, the 85 kg session becomes the record holder (beating 80)
+    const without = rebuildStatsForExercise(
+      all.filter((w) => w.id !== 'w2'),
+      'press',
+    )!
+    expect(
+      without.prEventsByWorkout.get('w3')!.find((e) => e.type === 'heaviestWeightKg'),
+    ).toMatchObject({ value: 85, previousValue: 80 })
+  })
+})
+
 describe('rebuildAllStats', () => {
   it('reconstruye cada ejercicio presente y omite el resto', () => {
     const sessions = [

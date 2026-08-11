@@ -1,5 +1,5 @@
 import { detectNewPrs, sessionCandidates, statsBaseline } from './prs'
-import type { ExerciseStats, WithId, Workout } from './types'
+import type { ExerciseStats, PrDetail, WithId, Workout } from './types'
 
 /** Result of rebuilding one exercise's stats from scratch (no id/updatedAt yet). */
 export interface RebuiltExerciseStats {
@@ -7,6 +7,8 @@ export interface RebuiltExerciseStats {
   lastPerformance: ExerciseStats['lastPerformance']
   prs: ExerciseStats['prs']
   totalSessions: number
+  /** Record events attributed per workout; the baseline (first) session emits none. */
+  prEventsByWorkout: Map<string, PrDetail[]>
 }
 
 /**
@@ -22,16 +24,32 @@ export function rebuildStatsForExercise(
   let exerciseName = ''
   let last: ExerciseStats['lastPerformance'] = null
   let totalSessions = 0
+  const prEventsByWorkout = new Map<string, PrDetail[]>()
 
   for (const w of sessions) {
     const matches = w.exercises.filter((e) => e.exerciseId === exerciseId)
     if (matches.length === 0) continue
     totalSessions += 1
+    const isBaseline = totalSessions === 1
     for (const ex of matches) {
       exerciseName = ex.exerciseName
       const bw = ex.usesBodyweight ? (w.bodyWeightKg ?? null) : null
       const candidates = sessionCandidates(ex.sets, bw)
-      const newTypes = detectNewPrs(candidates, statsBaseline({ prs }))
+      const baseline = statsBaseline({ prs })
+      const newTypes = detectNewPrs(candidates, baseline)
+      if (!isBaseline && newTypes.length > 0) {
+        const events = prEventsByWorkout.get(w.id) ?? []
+        for (const type of newTypes) {
+          events.push({
+            exerciseId,
+            exerciseName: ex.exerciseName,
+            type,
+            value: candidates[type]!,
+            previousValue: baseline[type] ?? null,
+          })
+        }
+        prEventsByWorkout.set(w.id, events)
+      }
       for (const type of newTypes) {
         prs = { ...prs, [type]: { value: candidates[type]!, workoutId: w.id, dateKey: w.dateKey } }
       }
@@ -40,7 +58,7 @@ export function rebuildStatsForExercise(
   }
 
   if (totalSessions === 0) return null
-  return { exerciseName, lastPerformance: last, prs, totalSessions }
+  return { exerciseName, lastPerformance: last, prs, totalSessions, prEventsByWorkout }
 }
 
 /** Rebuilds every exercise that appears in the history (sorted ascending). */
