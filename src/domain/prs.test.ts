@@ -151,6 +151,37 @@ describe('applySessionPrs', () => {
   })
 })
 
+describe('applySessionPrs · details', () => {
+  it('incluye valor nuevo y marca anterior para cada récord', () => {
+    const stats = {
+      totalSessions: 3,
+      prs: { heaviestWeightKg: { value: 95, workoutId: 'w0', dateKey: '2026-01-01' } },
+    }
+    const { details } = applySessionPrs(exercise([set({ weightKg: 100, reps: 3 })]), stats, 'w9', '2026-02-01')
+    const heaviest = details.find((d) => d.type === 'heaviestWeightKg')
+    expect(heaviest).toMatchObject({
+      exerciseId: 'bb-bench-press',
+      exerciseName: 'Press de banca',
+      value: 100,
+      previousValue: 95,
+    })
+    // types never recorded before carry previousValue null
+    const reps = details.find((d) => d.type === 'mostReps')
+    expect(reps?.previousValue).toBeNull()
+  })
+
+  it('sesión base: sin récords y sin detalles', () => {
+    const { newPrs, details } = applySessionPrs(
+      exercise([set({ weightKg: 100, reps: 3 })]),
+      null,
+      'w1',
+      '2026-02-01',
+    )
+    expect(newPrs).toEqual([])
+    expect(details).toEqual([])
+  })
+})
+
 describe('récords con peso corporal', () => {
   it('el peso corporal genera candidatos de volumen pero nunca de peso ni 1RM', () => {
     const c = setCandidates(set({ reps: 10 }), 80)

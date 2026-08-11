@@ -1,6 +1,6 @@
 import { brzycki, epley } from './oneRepMax'
 import { isWorkingSet, setVolume } from './volume'
-import type { ExerciseStats, PrType, SetEntry, WorkoutExercise } from './types'
+import type { ExerciseStats, PrDetail, PrType, SetEntry, WorkoutExercise } from './types'
 
 /** Candidate record values, by type. */
 export type PrCandidates = Partial<Record<PrType, number>>
@@ -96,6 +96,8 @@ export function detectLiveSetPrs(
 export interface SessionPrResult {
   newPrs: PrType[]
   prs: ExerciseStats['prs']
+  /** Rows for the workout doc's prDetails (empty on baseline sessions). */
+  details: PrDetail[]
 }
 
 /**
@@ -111,12 +113,21 @@ export function applySessionPrs(
 ): SessionPrResult {
   const bw = exercise.usesBodyweight ? (bodyWeightKg ?? null) : null
   const candidates = sessionCandidates(exercise.sets, bw)
-  const improved = detectNewPrs(candidates, statsBaseline(stats))
+  const baseline = statsBaseline(stats)
+  const improved = detectNewPrs(candidates, baseline)
   const prs: ExerciseStats['prs'] = { ...(stats?.prs ?? {}) }
   for (const type of improved) {
     prs[type] = { value: candidates[type]!, workoutId, dateKey }
   }
-  return { newPrs: isBaselineSession(stats) ? [] : improved, prs }
+  if (isBaselineSession(stats)) return { newPrs: [], prs, details: [] }
+  const details: PrDetail[] = improved.map((type) => ({
+    exerciseId: exercise.exerciseId,
+    exerciseName: exercise.exerciseName,
+    type,
+    value: candidates[type]!,
+    previousValue: baseline[type] ?? null,
+  }))
+  return { newPrs: improved, prs, details }
 }
 
 /** Record types as shown to the user: both 1RM formulas collapse into one. */
