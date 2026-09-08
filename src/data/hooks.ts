@@ -4,15 +4,20 @@ import { useUser } from '@/app/AuthProvider'
 import type {
   CustomExercise,
   ExerciseStats,
+  Food,
+  NutritionDay,
   Reminder,
   Routine,
   UserProfile,
   WithId,
   Workout,
 } from '@/domain/types'
+import { weekEndKey } from '@/lib/dates'
 import {
   customExercisesCol,
   exerciseStatsCol,
+  foodsCol,
+  nutritionDaysCol,
   remindersCol,
   routinesCol,
   userDoc,
@@ -163,6 +168,26 @@ export function useCustomExercises(): WithId<CustomExercise>[] | undefined {
 export function useReminders(): WithId<Reminder>[] | undefined {
   const uid = useUser().uid
   return useLiveQuery(() => query(remindersCol(uid), orderBy('createdAt')), [uid])
+}
+
+/** The whole personal food library (small; ranked client-side). */
+export function useFoods(): WithId<Food>[] | undefined {
+  const uid = useUser().uid
+  return useLiveQuery(() => query(foodsCol(uid), orderBy('name')), [uid])
+}
+
+/** Day docs of the Mon–Sun week starting at `weekStart`; only logged days exist. */
+export function useNutritionWeek(weekStart: string): WithId<NutritionDay>[] | undefined {
+  const uid = useUser().uid
+  return useLiveQuery(
+    () =>
+      query(
+        nutritionDaysCol(uid),
+        where('dateKey', '>=', weekStart),
+        where('dateKey', '<=', weekEndKey(weekStart)),
+      ),
+    [uid, weekStart],
+  )
 }
 
 /** Stats for all exercises with history (map keyed by exerciseId). */
