@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Plus, Target, Utensils } from 'lucide-react'
+import { BookOpen, Plus, Target, Utensils } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { parseISO } from 'date-fns'
 import { useUser } from '@/app/AuthProvider'
@@ -88,14 +88,24 @@ export function NutritionScreen() {
         <h1 className="min-w-0 flex-1 text-2xl font-bold tracking-tight">{t('nutrition:title')}</h1>
         <KebabMenu>
           {(close) => (
-            <MenuItem
-              icon={<Target className="size-4" />}
-              label={t('nutrition:menu.goals')}
-              onClick={() => {
-                close()
-                navigate('/ajustes')
-              }}
-            />
+            <>
+              <MenuItem
+                icon={<BookOpen className="size-4" />}
+                label={t('nutrition:menu.library')}
+                onClick={() => {
+                  close()
+                  navigate('/comida/alimentos')
+                }}
+              />
+              <MenuItem
+                icon={<Target className="size-4" />}
+                label={t('nutrition:menu.goals')}
+                onClick={() => {
+                  close()
+                  navigate('/ajustes')
+                }}
+              />
+            </>
           )}
         </KebabMenu>
       </header>
