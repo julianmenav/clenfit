@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { addWeeksToKey, formatWeekRange, weekEndKey, weekStartKey } from './dates'
+import {
+  addWeeksToKey,
+  formatWeekRange,
+  weekDayKeys,
+  weekdayInitial,
+  weekEndKey,
+  weekStartKey,
+} from './dates'
 
 describe('weekStartKey', () => {
   it('returns the Monday of the week containing the key', () => {
@@ -42,5 +49,33 @@ describe('addWeeksToKey', () => {
 describe('formatWeekRange', () => {
   it('formats Monday–Sunday in short Spanish dates', () => {
     expect(formatWeekRange('2026-07-27')).toBe('27 jul – 2 ago')
+  })
+})
+
+describe('weekDayKeys', () => {
+  it('returns the seven keys Monday to Sunday', () => {
+    expect(weekDayKeys('2026-09-07')).toEqual([
+      '2026-09-07',
+      '2026-09-08',
+      '2026-09-09',
+      '2026-09-10',
+      '2026-09-11',
+      '2026-09-12',
+      '2026-09-13',
+    ])
+  })
+})
+
+describe('weekdayInitial', () => {
+  it('uses the Spanish initials, X for Wednesday', () => {
+    expect(weekDayKeys('2026-09-07').map(weekdayInitial)).toEqual([
+      'L',
+      'M',
+      'X',
+      'J',
+      'V',
+      'S',
+      'D',
+    ])
   })
 })
