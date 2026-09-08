@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Target, Utensils } from 'lucide-react'
+import { Plus, Target, Utensils } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { parseISO } from 'date-fns'
+import { useUser } from '@/app/AuthProvider'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { KebabMenu, MenuItem } from '@/components/ui/KebabMenu'
 import { WeekPager } from '@/components/ui/WeekPager'
-import { useNutritionWeek, useUserProfile } from '@/data/hooks'
+import { useFoods, useNutritionWeek, useUserProfile } from '@/data/hooks'
+import { addEntry } from '@/data/nutritionMutations'
 import {
   dayTotals,
   entryMacros,
+  goalForDay,
   hasGoal,
   proteinIndex,
   weekSummary,
@@ -18,6 +21,7 @@ import {
 import type { FoodEntry, Macros } from '@/domain/types'
 import { addWeeksToKey, formatDay, toDateKey, weekDayKeys, weekStartKey } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { AddEntrySheet } from './AddEntrySheet'
 import { DayCard } from './DayCard'
 import { entryAmountLabel, formatGrams, formatIndex, formatKcal } from './format'
 import { WeekStrip } from './WeekStrip'
@@ -25,12 +29,15 @@ import { WeekStrip } from './WeekStrip'
 export function NutritionScreen() {
   const { t } = useTranslation(['nutrition', 'common'])
   const navigate = useNavigate()
+  const uid = useUser().uid
   const profile = useUserProfile()
+  const foods = useFoods()
 
   const todayKey = toDateKey(new Date())
   const currentWeekStart = weekStartKey(todayKey)
   const [weekStart, setWeekStart] = useState(currentWeekStart)
   const [selectedKey, setSelectedKey] = useState(todayKey)
+  const [adding, setAdding] = useState(false)
   const days = useNutritionWeek(weekStart)
   const dayKeys = useMemo(() => weekDayKeys(weekStart), [weekStart])
 
@@ -70,6 +77,8 @@ export function NutritionScreen() {
 
   const summary = days ? weekSummary(dayKeys, days, goal) : null
   const totals = dayTotals(selectedDay?.entries ?? [])
+  const writeGoal = goalForDay(selectedDay, selectedKey, todayKey, goal)
+  const canLog = selectedKey <= todayKey
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-6 pb-24">
@@ -124,8 +133,31 @@ export function NutritionScreen() {
           ))}
         </ul>
       ) : (
-        <p className="px-2 text-center text-sm text-ink-3">{t('nutrition:day.empty')}</p>
+        <p className="px-2 text-center text-sm text-ink-3">
+          {canLog ? t('nutrition:day.empty') : t('nutrition:day.future')}
+        </p>
       )}
+
+      {canLog && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-lg justify-center px-4 pb-3 lg:bottom-0">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="pointer-events-auto flex h-12 items-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent shadow-lg active:scale-95"
+          >
+            <Plus className="size-5" strokeWidth={2.5} />
+            {t('nutrition:add')}
+          </button>
+        </div>
+      )}
+
+      <AddEntrySheet
+        open={adding}
+        onOpenChange={setAdding}
+        foods={foods ?? []}
+        goal={goal}
+        onAdd={(entry, opts) => addEntry(uid, selectedKey, selectedDay, entry, writeGoal, opts)}
+      />
     </div>
   )
 }
