@@ -10,6 +10,8 @@ import { db } from '@/lib/firebase'
 import {
   customExerciseSchema,
   exerciseStatsSchema,
+  foodSchema,
+  nutritionDaySchema,
   reminderSchema,
   routineSchema,
   workoutSchema,
@@ -77,5 +79,19 @@ export const remindersCol = (uid: string) =>
   collection(db, 'users', uid, 'reminders').withConverter(reminderConverter)
 export const reminderDoc = (uid: string, id: string) =>
   doc(db, 'users', uid, 'reminders', id).withConverter(reminderConverter)
+
+export const foodConverter = converterFor(foodSchema)
+export const nutritionDayConverter = converterFor(nutritionDaySchema)
+
+export const foodsCol = (uid: string) =>
+  collection(db, 'users', uid, 'foods').withConverter(foodConverter)
+export const foodDoc = (uid: string, id: string) =>
+  doc(db, 'users', uid, 'foods', id).withConverter(foodConverter)
+
+/** Day docs are keyed by the local date ('YYYY-MM-DD'). */
+export const nutritionDaysCol = (uid: string) =>
+  collection(db, 'users', uid, 'nutritionDays').withConverter(nutritionDayConverter)
+export const nutritionDayDoc = (uid: string, dateKey: string) =>
+  doc(db, 'users', uid, 'nutritionDays', dateKey).withConverter(nutritionDayConverter)
 
 export const userDoc = (uid: string) => doc(db, 'users', uid)

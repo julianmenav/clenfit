@@ -1,0 +1,93 @@
+{
+  "title": "Comida",
+  "week": {
+    "current": "Esta semana",
+    "prev": "Semana anterior",
+    "next": "Semana siguiente",
+    "average": "Media/día",
+    "balance": "Balance semanal",
+    "noData": "Sin registros esta semana"
+  },
+  "day": {
+    "eaten": "Comido",
+    "of": "de {{goal}}",
+    "remaining": "Te quedan {{kcal}} kcal",
+    "over": "Te has pasado {{kcal}} kcal",
+    "index": "Índice proteico",
+    "empty": "Nada registrado todavía. Añade lo primero que hayas comido.",
+    "future": "Todavía no ha llegado este día."
+  },
+  "macros": {
+    "kcal": "kcal",
+    "protein": "Proteínas",
+    "carbs": "Hidratos",
+    "fat": "Grasas",
+    "proteinShort": "prot"
+  },
+  "add": "Añadir",
+  "addSheet": {
+    "title": "Añadir comida",
+    "searchPlaceholder": "Buscar en mis alimentos…",
+    "newFood": "Nuevo alimento",
+    "newFoodNamed": "Nuevo alimento «{{name}}»",
+    "noMatches": "Ningún alimento guardado coincide.",
+    "noFoods": "Aún no tienes alimentos guardados: crea el primero.",
+    "amount": "Cantidad",
+    "back": "Volver a buscar"
+  },
+  "form": {
+    "name": "Nombre",
+    "namePlaceholder": "Pechuga de pollo, Atún en lata…",
+    "kind": "Valores por",
+    "per100g": "100 g",
+    "perUnit": "Unidad",
+    "unitLabel": "Nombre de la unidad",
+    "unitLabelPlaceholder": "huevo, lata, rebanada…",
+    "kcal": "Calorías",
+    "protein": "Proteínas",
+    "carbs": "Hidratos",
+    "fat": "Grasas",
+    "optional": "opcional",
+    "amountEaten": "Cantidad que has comido",
+    "unitShort": "ud",
+    "saveToLibrary": "Guardar en mis alimentos"
+  },
+  "preview": {
+    "full": "{{kcal}} kcal · {{protein}} g prot",
+    "kcalOnly": "{{kcal}} kcal"
+  },
+  "entry": {
+    "editTitle": "Editar entrada",
+    "delete": "Eliminar entrada",
+    "deleteBody": "Se quitará de este día. El alimento guardado no cambia.",
+    "amountGrams": "{{amount}} g",
+    "amountUnits": "{{amount}} × {{unit}}",
+    "amountUnitsBare": "{{amount}} ud"
+  },
+  "library": {
+    "title": "Mis alimentos",
+    "searchPlaceholder": "Buscar…",
+    "empty": {
+      "title": "Aún no has guardado alimentos",
+      "body": "Marca «Guardar en mis alimentos» al añadir una comida y aparecerá aquí."
+    },
+    "noMatches": "Ningún alimento coincide.",
+    "editTitle": "Editar alimento",
+    "delete": "Eliminar alimento",
+    "deleteBody": "Las entradas ya registradas no cambian.",
+    "perBase100g": "por 100 g",
+    "perBaseUnit": "por {{unit}}",
+    "perBaseUnitBare": "por unidad",
+    "usedTimes_one": "{{count}} vez",
+    "usedTimes_other": "{{count}} veces"
+  },
+  "menu": {
+    "library": "Mis alimentos",
+    "goals": "Objetivos"
+  },
+  "noGoal": {
+    "title": "Define tu objetivo diario",
+    "body": "Necesitas al menos las calorías diarias para empezar a registrar lo que comes.",
+    "action": "Ir a ajustes"
+  }
+}

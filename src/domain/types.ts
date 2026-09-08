@@ -279,6 +279,61 @@ export const reminderSchema = z.object({
 })
 export type Reminder = z.infer<typeof reminderSchema>
 
+/* -------------------------------- Nutrition ------------------------------- */
+
+/** kcal is always known; the other three are optional data (null = not tracked). */
+export const macrosSchema = z.object({
+  kcal: z.number(),
+  protein: z.number().nullable(),
+  carbs: z.number().nullable(),
+  fat: z.number().nullable(),
+})
+export type Macros = z.infer<typeof macrosSchema>
+
+export const foodKinds = ['per100g', 'perUnit'] as const
+export type FoodKind = (typeof foodKinds)[number]
+
+/** Personal food library entry (users/{uid}/foods). */
+export const foodSchema = z.object({
+  name: z.string().min(1),
+  kind: z.enum(foodKinds),
+  /** «huevo», «lata», «rebanada»… only meaningful for perUnit; null otherwise. */
+  unitLabel: z.string().nullable(),
+  /** Per 100 g (per100g) or per unit (perUnit). */
+  per: macrosSchema,
+  /** Prefill for the next log of this food. */
+  lastAmount: z.number().nullable(),
+  useCount: z.number().int(),
+  lastUsedAt: z.instanceof(Timestamp).nullable(),
+  createdAt: z.instanceof(Timestamp),
+})
+export type Food = z.infer<typeof foodSchema>
+
+/** One logged item inside a day. Snapshots the food's base macros. */
+export const foodEntrySchema = z.object({
+  id: z.string(),
+  /** Library food it came from; null for one-off entries (or deleted foods). */
+  foodId: z.string().nullable(),
+  name: z.string().min(1),
+  kind: z.enum(foodKinds),
+  unitLabel: z.string().nullable(),
+  /** Grams for per100g, units (decimals allowed) for perUnit. */
+  amount: z.number().positive(),
+  /** Snapshot of the food's per-100g / per-unit macros at logging time. */
+  per: macrosSchema,
+})
+export type FoodEntry = z.infer<typeof foodEntrySchema>
+
+/** One doc per local day (users/{uid}/nutritionDays/{dateKey}). */
+export const nutritionDaySchema = z.object({
+  dateKey: z.string(),
+  /** Goal in force when the day was last written (past days keep theirs). */
+  goal: macrosSchema,
+  entries: z.array(foodEntrySchema),
+  updatedAt: z.instanceof(Timestamp),
+})
+export type NutritionDay = z.infer<typeof nutritionDaySchema>
+
 /* ------------------------------- User profile ----------------------------- */
 
 export const userSettingsSchema = z.object({
@@ -290,6 +345,8 @@ export const userSettingsSchema = z.object({
   oneRmFormula: z.enum(oneRmFormulas),
   /** Used as the load of bodyweight exercises. Defaulted for older docs. */
   bodyWeightKg: z.number().nullable().default(null),
+  /** Daily nutrition goal; null until set. kcal 0 also means «not set» (see hasGoal). */
+  nutritionGoal: macrosSchema.nullable().default(null),
 })
 export type UserSettings = z.infer<typeof userSettingsSchema>
 
@@ -306,4 +363,5 @@ export const defaultSettings: UserSettings = {
   restTimer: { enabled: true, defaultSeconds: 90 },
   oneRmFormula: 'epley',
   bodyWeightKg: null,
+  nutritionGoal: null,
 }

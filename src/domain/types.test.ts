@@ -1,6 +1,15 @@
 import { Timestamp } from 'firebase/firestore'
 import { describe, expect, it } from 'vitest'
-import { prDetailSchema, reminderSchema, workoutExerciseSchema, workoutSchema } from './types'
+import {
+  foodEntrySchema,
+  macrosSchema,
+  nutritionDaySchema,
+  prDetailSchema,
+  reminderSchema,
+  userSettingsSchema,
+  workoutExerciseSchema,
+  workoutSchema,
+} from './types'
 
 const legacyExercise = {
   exerciseId: 'bb-bench-press',
@@ -72,7 +81,9 @@ describe('reminderSchema', () => {
 
   it('acepta los cuatro tipos de disparador', () => {
     expect(() => reminderSchema.parse({ ...base, trigger: { type: 'workoutStart' } })).not.toThrow()
-    expect(() => reminderSchema.parse({ ...base, trigger: { type: 'workoutFinish' } })).not.toThrow()
+    expect(() =>
+      reminderSchema.parse({ ...base, trigger: { type: 'workoutFinish' } }),
+    ).not.toThrow()
     expect(() =>
       reminderSchema.parse({
         ...base,
@@ -91,5 +102,52 @@ describe('reminderSchema', () => {
     expect(() =>
       reminderSchema.parse({ ...base, messages: [''], trigger: { type: 'workoutStart' } }),
     ).toThrow()
+  })
+})
+
+describe('nutrición: esquemas', () => {
+  const entry = {
+    id: 'e1',
+    foodId: null,
+    name: 'Huevo',
+    kind: 'perUnit',
+    unitLabel: 'huevo',
+    amount: 2,
+    per: { kcal: 70, protein: 6, carbs: null, fat: null },
+  }
+
+  it('macrosSchema exige kcal y admite null (nunca undefined) en el resto', () => {
+    expect(
+      macrosSchema.parse({ kcal: 100, protein: null, carbs: null, fat: null }).protein,
+    ).toBeNull()
+    expect(() =>
+      macrosSchema.parse({ kcal: 100, protein: undefined, carbs: null, fat: null }),
+    ).toThrow()
+    expect(() => macrosSchema.parse({ protein: 10, carbs: null, fat: null })).toThrow()
+  })
+
+  it('foodEntrySchema exige una cantidad positiva', () => {
+    expect(() => foodEntrySchema.parse(entry)).not.toThrow()
+    expect(() => foodEntrySchema.parse({ ...entry, amount: 0 })).toThrow()
+  })
+
+  it('nutritionDaySchema guarda el objetivo del día y las entradas', () => {
+    const parsed = nutritionDaySchema.parse({
+      dateKey: '2026-09-08',
+      goal: { kcal: 1850, protein: 100, carbs: null, fat: null },
+      entries: [entry],
+      updatedAt: Timestamp.now(),
+    })
+    expect(parsed.entries).toHaveLength(1)
+    expect(parsed.goal.kcal).toBe(1850)
+  })
+
+  it('los perfiles antiguos sin nutritionGoal parsean con null', () => {
+    const parsed = userSettingsSchema.parse({
+      theme: 'system',
+      restTimer: { enabled: true, defaultSeconds: 90 },
+      oneRmFormula: 'epley',
+    })
+    expect(parsed.nutritionGoal).toBeNull()
   })
 })

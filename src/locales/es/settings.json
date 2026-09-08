@@ -28,6 +28,15 @@
     "label": "Tu peso",
     "help": "Se usa para calcular el volumen de los ejercicios a peso corporal (dominadas, fondos, flexiones…)."
   },
+  "nutrition": {
+    "title": "Nutrición",
+    "help": "Objetivo diario. Las calorías son obligatorias; el resto es opcional y solo se muestra si lo rellenas.",
+    "kcal": "Calorías",
+    "protein": "Proteínas",
+    "carbs": "Hidratos",
+    "fat": "Grasas",
+    "optional": "opcional"
+  },
   "data": {
     "title": "Datos",
     "recalcStats": "Recalcular récords y estadísticas",
