@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { KebabMenu, MenuItem } from '@/components/ui/KebabMenu'
 import { WeekPager } from '@/components/ui/WeekPager'
 import { useFoods, useNutritionWeek, useUserProfile } from '@/data/hooks'
-import { addEntry } from '@/data/nutritionMutations'
+import { addEntry, removeEntry, updateEntry } from '@/data/nutritionMutations'
 import {
   dayTotals,
   entryMacros,
@@ -23,6 +23,7 @@ import { addWeeksToKey, formatDay, toDateKey, weekDayKeys, weekStartKey } from '
 import { cn } from '@/lib/utils'
 import { AddEntrySheet } from './AddEntrySheet'
 import { DayCard } from './DayCard'
+import { EditEntrySheet } from './EditEntrySheet'
 import { entryAmountLabel, formatGrams, formatIndex, formatKcal } from './format'
 import { WeekStrip } from './WeekStrip'
 
@@ -38,6 +39,7 @@ export function NutritionScreen() {
   const [weekStart, setWeekStart] = useState(currentWeekStart)
   const [selectedKey, setSelectedKey] = useState(todayKey)
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<FoodEntry | null>(null)
   const days = useNutritionWeek(weekStart)
   const dayKeys = useMemo(() => weekDayKeys(weekStart), [weekStart])
 
@@ -129,7 +131,7 @@ export function NutritionScreen() {
       {selectedDay && selectedDay.entries.length > 0 ? (
         <ul className="flex flex-col gap-2">
           {selectedDay.entries.map((entry) => (
-            <EntryRow key={entry.id} entry={entry} goal={goal} />
+            <EntryRow key={entry.id} entry={entry} goal={goal} onClick={() => setEditing(entry)} />
           ))}
         </ul>
       ) : (
@@ -157,6 +159,14 @@ export function NutritionScreen() {
         foods={foods ?? []}
         goal={goal}
         onAdd={(entry, opts) => addEntry(uid, selectedKey, selectedDay, entry, writeGoal, opts)}
+      />
+
+      <EditEntrySheet
+        entry={editing}
+        goal={goal}
+        onClose={() => setEditing(null)}
+        onSave={(entry) => selectedDay && updateEntry(uid, selectedDay, entry, writeGoal)}
+        onDelete={(id) => selectedDay && removeEntry(uid, selectedDay, id, writeGoal)}
       />
     </div>
   )
@@ -197,34 +207,48 @@ function WeekLine({ summary }: { summary: WeekSummaryData }) {
   )
 }
 
-function EntryRow({ entry, goal }: { entry: FoodEntry; goal: Macros }) {
+function EntryRow({
+  entry,
+  goal,
+  onClick,
+}: {
+  entry: FoodEntry
+  goal: Macros
+  onClick: () => void
+}) {
   const { t } = useTranslation(['nutrition', 'common'])
   const m = entryMacros(entry)
   const index = proteinIndex(m, goal)
   return (
-    <li className="flex items-center gap-3 rounded-card border border-hairline bg-surface p-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{entry.name}</p>
-        <p className="mt-0.5 text-xs text-ink-3">{entryAmountLabel(entry, t)}</p>
-      </div>
-      <div className="tnum text-right text-sm">
-        <p className="font-semibold">{formatKcal(m.kcal)} kcal</p>
-        {m.protein != null && (
-          <p className="text-xs text-ink-2">
-            {formatGrams(m.protein)} {t('common:units.g')} {t('nutrition:macros.proteinShort')}
-          </p>
-        )}
-      </div>
-      {index != null && (
-        <span
-          className={cn(
-            'tnum shrink-0 rounded-chip border px-2 py-0.5 text-xs font-semibold',
-            index >= 1 ? 'border-accent/40 text-accent' : 'border-hairline text-ink-3',
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-3 rounded-card border border-hairline bg-surface p-3 text-left active:bg-surface-2"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{entry.name}</p>
+          <p className="mt-0.5 text-xs text-ink-3">{entryAmountLabel(entry, t)}</p>
+        </div>
+        <div className="tnum text-right text-sm">
+          <p className="font-semibold">{formatKcal(m.kcal)} kcal</p>
+          {m.protein != null && (
+            <p className="text-xs text-ink-2">
+              {formatGrams(m.protein)} {t('common:units.g')} {t('nutrition:macros.proteinShort')}
+            </p>
           )}
-        >
-          {formatIndex(index)}
-        </span>
-      )}
+        </div>
+        {index != null && (
+          <span
+            className={cn(
+              'tnum shrink-0 rounded-chip border px-2 py-0.5 text-xs font-semibold',
+              index >= 1 ? 'border-accent/40 text-accent' : 'border-hairline text-ink-3',
+            )}
+          >
+            {formatIndex(index)}
+          </span>
+        )}
+      </button>
     </li>
   )
 }
