@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { signOut } from 'firebase/auth'
 import { updateDoc } from 'firebase/firestore'
@@ -168,6 +168,17 @@ function NutritionGoalSection({
 }) {
   const { t } = useTranslation(['settings', 'common'])
   const current = goal ?? EMPTY_MACROS
+  // Each write spreads the latest *committed* value, not the one captured at
+  // render time: moving from one field to the next before the snapshot echoes
+  // back must not clobber the field just typed. Remote changes are adopted
+  // only when the incoming goal actually differs.
+  const remoteKey = JSON.stringify(current)
+  const latest = useRef(current)
+  const synced = useRef(remoteKey)
+  if (synced.current !== remoteKey) {
+    synced.current = remoteKey
+    latest.current = current
+  }
 
   const rows: { key: keyof Macros; label: string; unit: string }[] = [
     { key: 'kcal', label: t('settings:nutrition.kcal'), unit: t('common:units.kcal') },
@@ -196,9 +207,10 @@ function NutritionGoalSection({
                 format={formatKg}
                 parse={parseDecimal}
                 onCommit={(v) => {
-                  const next: Macros = { ...current }
+                  const next: Macros = { ...latest.current }
                   if (row.key === 'kcal') next.kcal = v ?? 0
                   else next[row.key] = v
+                  latest.current = next
                   onChange(next)
                 }}
               />

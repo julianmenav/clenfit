@@ -86,9 +86,10 @@ export function FoodsScreen() {
         </>
       )}
 
+      {/* Steps aside while the confirm dialog is up (vaul's modal layer would block it). */}
       <Sheet
-        open={editing != null}
-        onOpenChange={(o) => !o && close()}
+        open={editing != null && !confirming}
+        onOpenChange={(o) => !o && !confirming && close()}
         title={t('nutrition:library.editTitle')}
       >
         {editing && draft && (

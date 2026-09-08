@@ -34,9 +34,11 @@ export function EditEntrySheet({
 
   return (
     <>
+      {/* The sheet steps aside while the confirm dialog is up: vaul's modal layer
+          would otherwise sit on top of it and swallow its clicks. Cancel brings it back. */}
       <Sheet
-        open={entry != null}
-        onOpenChange={(o) => !o && onClose()}
+        open={entry != null && !confirming}
+        onOpenChange={(o) => !o && !confirming && onClose()}
         title={t('nutrition:entry.editTitle')}
       >
         {entry && (

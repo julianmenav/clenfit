@@ -45,14 +45,16 @@ function Field({
   hint?: string
   children: React.ReactNode
 }) {
+  // A <div>, not a <label>: the children carry their own aria-label, and a
+  // <label> around the kind toggle would name its first button after the caption.
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-ink-2">
         {label}
         {hint && <span className="text-ink-3"> · {hint}</span>}
       </span>
       {children}
-    </label>
+    </div>
   )
 }
 
