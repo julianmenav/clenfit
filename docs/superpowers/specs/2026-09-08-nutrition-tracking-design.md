@@ -38,6 +38,10 @@ Goal — in `userSettingsSchema`, optional until the user sets it:
 nutritionGoal: macrosSchema.nullable().default(null) // default for older profile docs
 ```
 
+A goal counts as set only when `kcal > 0` (`hasGoal`). Settings write the
+object with `kcal: 0` when the field is cleared instead of nulling it, so the
+optional macros survive retyping the calories.
+
 Library food — new subcollection `users/{uid}/foods/{id}`:
 
 ```ts
@@ -88,10 +92,11 @@ Rules that follow from the model:
   from `per`.
 - Entries snapshot `per`; editing or deleting a library food never changes
   past days. A deleted food leaves `foodId` dangling, which is fine.
-- The day doc snapshots the goal on every write. Past days keep the goal they
-  were logged under even after the user changes it in settings; today follows
-  the current goal because logging today rewrites the snapshot. Days without a
-  doc are evaluated against the current goal.
+- The day doc carries a goal snapshot. A write to today (or a future day)
+  stamps the current goal; a write to a past day that already has a doc keeps
+  the snapshot it was logged under (`goalForDay`), so editing an old entry
+  after changing the goal never recolors that week. Days without a doc are
+  evaluated against the current goal.
 - A day doc is created on the first entry and deleted when its last entry is
   removed (keeps «logged day» = «has a doc with ≥1 entry»).
 
