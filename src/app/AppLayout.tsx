@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { ChartPie, Dumbbell, History, House, Play, Settings } from 'lucide-react'
+import { ChartPie, Dumbbell, History, House, Play, Settings, Utensils } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@/app/AuthProvider'
@@ -22,6 +22,7 @@ export function AppLayout() {
   const tabs = [
     { to: '/', label: t('nav.home'), icon: House },
     { to: '/historial', label: t('nav.history'), icon: History },
+    { to: '/comida', label: t('nav.nutrition'), icon: Utensils },
     { to: '/ejercicios', label: t('nav.exercises'), icon: Dumbbell },
     { to: '/analisis', label: t('nav.analytics'), icon: ChartPie },
   ] as const
@@ -77,13 +78,7 @@ export function AppLayout() {
         className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface/95 backdrop-blur lg:hidden"
       >
         <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
-          {tabs.slice(0, 2).map((tab) => (
-            <TabLink key={tab.to} {...tab} />
-          ))}
-
-          <TrainFab />
-
-          {tabs.slice(2).map((tab) => (
+          {tabs.map((tab) => (
             <TabLink key={tab.to} {...tab} />
           ))}
         </div>
@@ -126,24 +121,6 @@ function RemoteWorkoutHydrator() {
   }, [remote, hydrate, uid])
 
   return null
-}
-
-function TrainFab() {
-  const { t } = useTranslation()
-  const { startAndGo } = useStartWorkout()
-
-  return (
-    <div className="flex justify-center">
-      <button
-        type="button"
-        aria-label={t('nav.train')}
-        onClick={() => startAndGo()}
-        className="-mt-6 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent shadow-lg transition-transform active:scale-95 disabled:opacity-60"
-      >
-        <Play className="size-7" strokeWidth={2.5} />
-      </button>
-    </div>
-  )
 }
 
 function TrainSideButton() {
