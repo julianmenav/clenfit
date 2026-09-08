@@ -11,7 +11,8 @@ import { userDoc } from '@/data/converters'
 import { formatKg, parseDecimal } from '@/lib/formatSet'
 import { useUserProfile } from '@/data/hooks'
 import { recomputeAllExerciseStats } from '@/data/workoutMutations'
-import type { OneRmFormula } from '@/domain/types'
+import { EMPTY_MACROS } from '@/domain/nutrition'
+import type { Macros, OneRmFormula } from '@/domain/types'
 import { auth } from '@/lib/firebase'
 import { isIos, isStandalone, promptInstall, useCanPromptInstall } from '@/lib/installPrompt'
 import { applyThemePref, type ThemePref } from '@/lib/theme'
@@ -67,7 +68,10 @@ export function SettingsScreen() {
             <Stepper
               onClick={() =>
                 update({
-                  'settings.restTimer.defaultSeconds': Math.max(15, s.restTimer.defaultSeconds - 15),
+                  'settings.restTimer.defaultSeconds': Math.max(
+                    15,
+                    s.restTimer.defaultSeconds - 15,
+                  ),
                 })
               }
               label="−15"
@@ -78,7 +82,10 @@ export function SettingsScreen() {
             <Stepper
               onClick={() =>
                 update({
-                  'settings.restTimer.defaultSeconds': Math.min(600, s.restTimer.defaultSeconds + 15),
+                  'settings.restTimer.defaultSeconds': Math.min(
+                    600,
+                    s.restTimer.defaultSeconds + 15,
+                  ),
                 })
               }
               label="+15"
@@ -114,6 +121,11 @@ export function SettingsScreen() {
         </div>
       </Section>
 
+      <NutritionGoalSection
+        goal={s.nutritionGoal ?? null}
+        onChange={(goal) => update({ 'settings.nutritionGoal': goal })}
+      />
+
       <Section title={t('settings:reminders.title')} help={t('settings:reminders.help')}>
         <Link
           to="/recordatorios"
@@ -140,6 +152,62 @@ export function SettingsScreen() {
         </button>
       </Section>
     </div>
+  )
+}
+
+/**
+ * Daily kcal goal (required to enable «Comida») plus optional protein/carbs/fat.
+ * A cleared kcal is stored as 0 (= unset, see hasGoal) so the other fields survive retyping.
+ */
+function NutritionGoalSection({
+  goal,
+  onChange,
+}: {
+  goal: Macros | null
+  onChange: (goal: Macros) => void
+}) {
+  const { t } = useTranslation(['settings', 'common'])
+  const current = goal ?? EMPTY_MACROS
+
+  const rows: { key: keyof Macros; label: string; unit: string }[] = [
+    { key: 'kcal', label: t('settings:nutrition.kcal'), unit: t('common:units.kcal') },
+    { key: 'protein', label: t('settings:nutrition.protein'), unit: t('common:units.g') },
+    { key: 'carbs', label: t('settings:nutrition.carbs'), unit: t('common:units.g') },
+    { key: 'fat', label: t('settings:nutrition.fat'), unit: t('common:units.g') },
+  ]
+
+  return (
+    <Section title={t('settings:nutrition.title')} help={t('settings:nutrition.help')}>
+      <div className="flex flex-col gap-3">
+        {rows.map((row) => (
+          <div key={row.key} className="flex items-center justify-between gap-3">
+            <span className="text-sm">
+              {row.label}
+              {row.key !== 'kcal' && (
+                <span className="text-ink-3"> · {t('settings:nutrition.optional')}</span>
+              )}
+            </span>
+            <div className="flex w-32 items-center gap-2">
+              <NumericField
+                ariaLabel={row.label}
+                value={
+                  row.key === 'kcal' ? (current.kcal > 0 ? current.kcal : null) : current[row.key]
+                }
+                format={formatKg}
+                parse={parseDecimal}
+                onCommit={(v) => {
+                  const next: Macros = { ...current }
+                  if (row.key === 'kcal') next.kcal = v ?? 0
+                  else next[row.key] = v
+                  onChange(next)
+                }}
+              />
+              <span className="w-8 text-sm text-ink-3">{row.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
   )
 }
 
