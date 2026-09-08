@@ -26,7 +26,7 @@ pnpm dev         # in another terminal
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
 
-The vitest tests cover the pure domain (`src/domain`): 1RM formulas (Epley/Brzycki), volume with warmup exclusion, record detection, accent-insensitive search, similar-exercise ranking and catalog invariants.
+The vitest tests cover the pure domain (`src/domain`): 1RM formulas (Epley/Brzycki), volume with warmup exclusion, record detection, accent-insensitive search, similar-exercise ranking, catalog invariants and nutrition (macros, protein index, week averages).
 
 ## Going to production
 
@@ -46,5 +46,6 @@ pnpm build && firebase deploy --only hosting
 - `src/data/catalog/exercises.ts` — static catalog (~110 exercises, stable slug ids; never delete an id, only `deprecated`). The `movement` axis feeds the similar-exercise suggestions when swapping machines.
 - `src/data/` — Firestore layer: zod converters, live hooks, mutations. Everything under `users/{uid}`.
 - `users/{uid}/exerciseStats/{exerciseId}` — denormalized per-exercise stats (last session → ghost values, multi-dimension records). Updated in the same batch on finish; after deleting a workout they are recomputed by replaying the history.
+- `users/{uid}/foods` + `users/{uid}/nutritionDays/{YYYY-MM-DD}` — personal food library and one doc per logged day (entries embedded, goal snapshotted). All nutrition math is pure in `src/domain/nutrition.ts`.
 - `src/store/activeWorkout.ts` — the active session lives in zustand (instant response) with persist to localStorage and a debounced sync to the Firestore `status:'active'` doc (resumable from another device).
 - The rest timer stores `endsAt` (epoch), never a countdown: always correct when returning to the app.
