@@ -16,4 +16,5 @@ Mobile-first PWA for tracking gym workouts. The app UI is 100% in Spanish via i1
 - `exerciseStats` are written in the same `writeBatch` as the workout on finish; after editing/deleting history → `recomputeExerciseStats`.
 - The active session: zustand (`store/activeWorkout.ts`) is the source of truth; Firestore receives a debounced sync; never write the active doc from anywhere else.
 - Both 1RMs (Epley and Brzycki) are stored in PRs so that changing the formula in settings does not corrupt the history.
+- Nutrition: only `kcal` is required on goals/foods/entries; `protein`/`carbs`/`fat` are `number | null`. Entries snapshot the food's `per` macros — editing or deleting a library food never touches past days. A day doc (`nutritionDays/{YYYY-MM-DD}`) exists iff it has ≥1 entry; its `goal` is the snapshot to compare against (past days keep theirs, see `goalForDay`).
 - Style: Tailwind v4 CSS-first, semantic tokens in `src/styles/tokens.css` (bg/surface/ink/accent...); same convention as ~/Projects/brokify.

@@ -7,6 +7,7 @@
     "history": "Historial",
     "train": "Entrenar",
     "exercises": "Ejercicios",
+    "nutrition": "Comida",
     "analytics": "Análisis",
     "settings": "Ajustes"
   },
@@ -58,7 +59,9 @@
     "min": "min",
     "s": "s",
     "km": "km",
-    "m": "m"
+    "m": "m",
+    "g": "g",
+    "kcal": "kcal"
   },
   "error": {
     "title": "Algo ha ido mal",

@@ -46,3 +46,15 @@ export function formatClock(totalSeconds: number): string {
   const s = Math.floor(totalSeconds % 60)
   return `${m}:${String(s).padStart(2, '0')}`
 }
+
+/** The seven day keys of the Mon–Sun week starting at the given Monday key. */
+export function weekDayKeys(weekStart: string): string[] {
+  const monday = parseISO(weekStart)
+  return Array.from({ length: 7 }, (_, i) => toDateKey(addDays(monday, i)))
+}
+
+/** Single-letter Spanish weekday: L M X J V S D. */
+export function weekdayInitial(dateKey: string): string {
+  const initials = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
+  return initials[parseISO(dateKey).getDay()]
+}

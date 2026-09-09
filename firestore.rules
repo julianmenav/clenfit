@@ -14,6 +14,12 @@ service cloud.firestore {
       match /reminders/{docId} {
         allow read, write: if isOwner(uid);
       }
+      match /foods/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /nutritionDays/{docId} {
+        allow read, write: if isOwner(uid);
+      }
       match /exerciseStats/{docId} {
         allow read, write: if isOwner(uid);
       }

@@ -11,11 +11,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartPie, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChartPie } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addDays, parseISO, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { WeekPager } from '@/components/ui/WeekPager'
 import { useCompletedWorkouts } from '@/data/hooks'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import {
@@ -28,14 +29,7 @@ import {
   type RepRange,
 } from '@/domain/analytics'
 import { muscleGroups, type WithId, type Workout } from '@/domain/types'
-import {
-  addWeeksToKey,
-  formatShortDate,
-  formatWeekRange,
-  toDateKey,
-  weekEndKey,
-  weekStartKey,
-} from '@/lib/dates'
+import { addWeeksToKey, formatShortDate, toDateKey, weekEndKey, weekStartKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { Last7DaysCard } from './Last7DaysCard'
 
@@ -100,8 +94,13 @@ export function AnalyticsScreen() {
         <WeekPager
           weekStart={weekStart}
           currentWeekStart={currentWeekStart}
-          minWeekStart={minWeekStart}
+          minWeekStart={minWeekStart ?? currentWeekStart}
           onStep={(dir) => setWeekStart((w) => addWeeksToKey(w, dir))}
+          labels={{
+            current: t('analytics:week.current'),
+            prev: t('analytics:week.prev'),
+            next: t('analytics:week.next'),
+          }}
         />
       )}
 
@@ -124,49 +123,6 @@ export function AnalyticsScreen() {
   )
 }
 
-/** Mon–Sun stepper for week mode; › stops at the current week. */
-function WeekPager({
-  weekStart,
-  currentWeekStart,
-  minWeekStart,
-  onStep,
-}: {
-  weekStart: string
-  currentWeekStart: string
-  minWeekStart: string | null
-  onStep: (dir: -1 | 1) => void
-}) {
-  const { t } = useTranslation('analytics')
-  const isCurrent = weekStart >= currentWeekStart
-  const atMin = minWeekStart == null || weekStart <= minWeekStart
-
-  return (
-    <div className="flex items-center justify-between rounded-card border border-hairline bg-surface p-1">
-      <button
-        type="button"
-        aria-label={t('week.prev')}
-        disabled={atMin}
-        onClick={() => onStep(-1)}
-        className="flex size-9 items-center justify-center rounded-card text-ink-2 active:bg-surface-2 disabled:opacity-30"
-      >
-        <ChevronLeft className="size-5" />
-      </button>
-      <span className="text-sm font-medium">
-        {isCurrent ? t('week.current') : formatWeekRange(weekStart)}
-      </span>
-      <button
-        type="button"
-        aria-label={t('week.next')}
-        disabled={isCurrent}
-        onClick={() => onStep(1)}
-        className="flex size-9 items-center justify-center rounded-card text-ink-2 active:bg-surface-2 disabled:opacity-30"
-      >
-        <ChevronRight className="size-5" />
-      </button>
-    </div>
-  )
-}
-
 /** Working sets per push/pull/legs/core group (token bars, no Recharts). */
 function MuscleBalance({ workouts }: { workouts: WithId<Workout>[] }) {
   const { t } = useTranslation('analytics')
@@ -177,7 +133,10 @@ function MuscleBalance({ workouts }: { workouts: WithId<Workout>[] }) {
 
   return (
     <Card title={t('balance.title')}>
-      <BarList rows={entries.map(([g, n]) => ({ label: t(`balance.${g}`), value: n }))} total={total} />
+      <BarList
+        rows={entries.map(([g, n]) => ({ label: t(`balance.${g}`), value: n }))}
+        total={total}
+      />
     </Card>
   )
 }
@@ -192,7 +151,10 @@ function RepRanges({ workouts }: { workouts: WithId<Workout>[] }) {
 
   return (
     <Card title={t('repRanges.title')}>
-      <BarList rows={entries.map(([r, n]) => ({ label: t(`repRanges.${r}`), value: n }))} total={total} />
+      <BarList
+        rows={entries.map(([r, n]) => ({ label: t(`repRanges.${r}`), value: n }))}
+        total={total}
+      />
     </Card>
   )
 }
@@ -282,7 +244,11 @@ function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
       </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 34, bottom: 0, left: 0 }}>
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 0, right: 34, bottom: 0, left: 0 }}
+          >
             <XAxis type="number" hide />
             <YAxis
               type="category"
@@ -346,8 +312,8 @@ function MuscleTooltip({
     <div className="max-w-56 rounded-card border border-hairline bg-surface-2 px-3 py-2 text-xs">
       <div className="font-semibold text-ink">{row.muscle}</div>
       <div className="tnum mt-0.5 text-ink-2">
-        {t('setsPerMuscleCard.direct')} {formatKg(row.direct)} ·{' '}
-        {t('setsPerMuscleCard.indirect')} {formatKg(row.indirect)}
+        {t('setsPerMuscleCard.direct')} {formatKg(row.direct)} · {t('setsPerMuscleCard.indirect')}{' '}
+        {formatKg(row.indirect)}
       </div>
       {row.topExercises.length > 0 && (
         <>
@@ -430,10 +396,7 @@ function VolumeTrend({ workouts, weekStart }: { workouts: WithId<Workout>[]; wee
 function Frequency({ workouts }: { workouts: WithId<Workout>[] }) {
   const { t } = useTranslation('analytics')
 
-  const data = useMemo(
-    () => bucketedTotals(workouts, () => 1, 'week', weekStartKey),
-    [workouts],
-  )
+  const data = useMemo(() => bucketedTotals(workouts, () => 1, 'week', weekStartKey), [workouts])
   if (data.length < 2) return null
 
   return (
