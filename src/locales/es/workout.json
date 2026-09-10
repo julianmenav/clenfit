@@ -27,7 +27,8 @@
   "removeExerciseConfirm": "¿Quitar «{{name}}» y sus series de este entrenamiento?",
   "swapExercise": "Cambiar ejercicio",
   "lastPerformances": {
-    "title": "Últimas sesiones"
+    "title": "Últimas sesiones",
+    "today": "Hoy: {{position}}.º de {{total}}"
   },
   "reorder": {
     "menuItem": "Reordenar ejercicios",

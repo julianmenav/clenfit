@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestSet, pruneIncomplete, summarizeWorkout } from './workoutSummary'
+import { bestSet, exercisePosition, pruneIncomplete, summarizeWorkout } from './workoutSummary'
 import type { SetEntry, WorkoutExercise } from './types'
 
 function set(partial: Partial<SetEntry>): SetEntry {
@@ -48,9 +48,7 @@ describe('summarizeWorkout', () => {
 
 describe('bestSet', () => {
   it('elige la serie de mayor volumen', () => {
-    const best = bestSet(
-      exercise([set({ weightKg: 60, reps: 8 }), set({ weightKg: 80, reps: 8 })]),
-    )
+    const best = bestSet(exercise([set({ weightKg: 60, reps: 8 }), set({ weightKg: 80, reps: 8 })]))
     expect(best?.weightKg).toBe(80)
   })
 
@@ -82,5 +80,27 @@ describe('pruneIncomplete', () => {
   it('conserva las notas del ejercicio', () => {
     const withNotes = { ...exercise([set({ reps: 10 })]), notes: 'mejor técnica' }
     expect(pruneIncomplete([withNotes])[0].notes).toBe('mejor técnica')
+  })
+})
+
+describe('exercisePosition', () => {
+  const ex = (exerciseId: string, order: number): WorkoutExercise => ({
+    ...exercise([set({ reps: 8 })]),
+    exerciseId,
+    order,
+  })
+
+  it('devuelve la posición (desde 1) y el total según el orden', () => {
+    const w = { exercises: [ex('a', 0), ex('b', 1), ex('c', 2)] }
+    expect(exercisePosition(w, 'b')).toEqual({ position: 2, total: 3 })
+  })
+
+  it('ordena por `order`, no por el índice del array', () => {
+    const w = { exercises: [ex('a', 2), ex('b', 0), ex('c', 1)] }
+    expect(exercisePosition(w, 'a')).toEqual({ position: 3, total: 3 })
+  })
+
+  it('null si el ejercicio no está en la sesión', () => {
+    expect(exercisePosition({ exercises: [ex('a', 0)] }, 'zzz')).toBeNull()
   })
 })

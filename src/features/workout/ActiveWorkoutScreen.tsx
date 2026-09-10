@@ -14,6 +14,7 @@ import { saveWorkoutAsRoutine, updateRoutineSlots } from '@/data/workoutMutation
 import { ghostForSet } from '@/domain/ghosts'
 import { detectLiveSetPrs, isBaselineSession, prDisplayType } from '@/domain/prs'
 import type { ExerciseDef, SetEntry } from '@/domain/types'
+import { exercisePosition } from '@/domain/workoutSummary'
 import { formatClock } from '@/lib/dates'
 import { useOnline } from '@/lib/useOnline'
 import { useWakeLock } from '@/lib/useWakeLock'
@@ -319,6 +320,9 @@ export function ActiveWorkoutScreen() {
         open={historyExerciseId !== null}
         onOpenChange={(open) => !open && setHistoryExerciseId(null)}
         exerciseId={historyExerciseId}
+        currentPosition={
+          workout && historyExerciseId ? exercisePosition(workout, historyExerciseId) : null
+        }
       />
 
       <ReorderSheet

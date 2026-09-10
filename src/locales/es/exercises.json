@@ -106,6 +106,7 @@
     },
     "sessions_one": "{{count}} sesión",
     "sessions_other": "{{count}} sesiones",
+    "position": "{{position}}.º de {{total}}",
     "prPoint": "Récord"
   },
   "usage": {

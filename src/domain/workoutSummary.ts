@@ -37,3 +37,18 @@ export function pruneIncomplete(exercises: WorkoutExercise[]): WorkoutExercise[]
     .filter((ex) => ex.sets.length > 0)
     .map((ex, i) => ({ ...ex, order: i }))
 }
+
+/**
+ * Where the exercise sat in the session: 1-based `position` out of `total`.
+ * Sorted by `order` (not array index) so a doc with gaps still reads right.
+ * null when the exercise is not in the workout.
+ */
+export function exercisePosition(
+  workout: Pick<Workout, 'exercises'>,
+  exerciseId: string,
+): { position: number; total: number } | null {
+  const sorted = [...workout.exercises].sort((a, b) => a.order - b.order)
+  const index = sorted.findIndex((ex) => ex.exerciseId === exerciseId)
+  if (index === -1) return null
+  return { position: index + 1, total: sorted.length }
+}
