@@ -142,16 +142,40 @@ describe('muscleSetBreakdown', () => {
     expect(out.get('triceps')).toMatchObject({ direct: 2, indirect: 3 })
   })
 
-  it('topExercises ordena por series y desempata por nombre', () => {
+  it('exercises ordena por series y desempata por nombre, sin truncar', () => {
     const out = muscleSetBreakdown(
-      [{ exercises: [ex('b-row', 'back', 3), ex('a-row', 'back', 3), ex('pulldown', 'back', 5)] }],
+      [
+        {
+          exercises: [
+            ex('b-row', 'back', 3),
+            ex('a-row', 'back', 3),
+            ex('pulldown', 'back', 5),
+            ex('shrug', 'back', 1),
+          ],
+        },
+      ],
       resolve,
     )
-    expect(out.get('back')?.topExercises.map((e) => e.exerciseId)).toEqual([
+    expect(out.get('back')?.exercises.map((e) => e.exerciseId)).toEqual([
       'pulldown',
       'a-row',
       'b-row',
+      'shrug',
     ])
+  })
+
+  it('cada ejercicio indica si aporta directo o indirecto y la lista suma el total exacto', () => {
+    const out = muscleSetBreakdown(
+      [{ exercises: [ex('press', 'chest', 4), ex('extension', 'triceps', 2)] }],
+      resolve,
+    )
+    const triceps = out.get('triceps')!
+    expect(triceps.exercises).toEqual([
+      { exerciseId: 'extension', exerciseName: 'EXTENSION', sets: 2, kind: 'direct' },
+      { exerciseId: 'press', exerciseName: 'PRESS', sets: 2, kind: 'indirect' },
+    ])
+    const sum = triceps.exercises.reduce((acc, e) => acc + e.sets, 0)
+    expect(sum).toBe(triceps.direct + triceps.indirect)
   })
 
   it('los ejercicios sin series efectivas no aparecen', () => {
@@ -193,13 +217,7 @@ describe('bucketedTotals', () => {
 
 describe('runningMaxFlags', () => {
   it('marca solo los máximos estrictos y nunca el primero', () => {
-    expect(runningMaxFlags([100, 100, 105, 102, 110])).toEqual([
-      false,
-      false,
-      true,
-      false,
-      true,
-    ])
+    expect(runningMaxFlags([100, 100, 105, 102, 110])).toEqual([false, false, true, false, true])
   })
 
   it('lista vacía', () => {

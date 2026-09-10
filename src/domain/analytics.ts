@@ -69,13 +69,22 @@ export function muscleBalance(
 /** A set for a secondary muscle counts half a direct one. */
 export const INDIRECT_SET_WEIGHT = 0.5
 
+export interface MuscleExerciseContribution {
+  exerciseId: string
+  exerciseName: string
+  /** Direct sets, or indirect ones already weighted by INDIRECT_SET_WEIGHT. */
+  sets: number
+  /** An exercise is one or the other for a given muscle, never both. */
+  kind: 'direct' | 'indirect'
+}
+
 export interface MuscleSetBreakdown {
   /** Working sets where the muscle is the exercise's primary one. */
   direct: number
   /** Working sets where it appears as secondary, weighted by INDIRECT_SET_WEIGHT. */
   indirect: number
-  /** Top contributors (direct + weighted indirect), descending. */
-  topExercises: { exerciseId: string; exerciseName: string; sets: number }[]
+  /** Every contributor, descending by sets; their sum equals direct + indirect exactly. */
+  exercises: MuscleExerciseContribution[]
 }
 
 /**
@@ -86,11 +95,10 @@ export interface MuscleSetBreakdown {
 export function muscleSetBreakdown(
   workouts: Pick<Workout, 'exercises'>[],
   secondariesOf: (exerciseId: string) => readonly MuscleGroup[],
-  topN = 3,
 ): Map<MuscleGroup, MuscleSetBreakdown> {
   const acc = new Map<
     MuscleGroup,
-    { direct: number; indirect: number; byExercise: Map<string, { name: string; sets: number }> }
+    { direct: number; indirect: number; byExercise: Map<string, MuscleExerciseContribution> }
   >()
 
   function bucket(muscle: MuscleGroup) {
@@ -102,11 +110,21 @@ export function muscleSetBreakdown(
     return b
   }
 
-  function credit(muscle: MuscleGroup, ex: { exerciseId: string; exerciseName: string }, sets: number, direct: boolean) {
+  function credit(
+    muscle: MuscleGroup,
+    ex: { exerciseId: string; exerciseName: string },
+    sets: number,
+    kind: MuscleExerciseContribution['kind'],
+  ) {
     const b = bucket(muscle)
-    if (direct) b.direct += sets
+    if (kind === 'direct') b.direct += sets
     else b.indirect += sets
-    const entry = b.byExercise.get(ex.exerciseId) ?? { name: ex.exerciseName, sets: 0 }
+    const entry = b.byExercise.get(ex.exerciseId) ?? {
+      exerciseId: ex.exerciseId,
+      exerciseName: ex.exerciseName,
+      sets: 0,
+      kind,
+    }
     entry.sets += sets
     b.byExercise.set(ex.exerciseId, entry)
   }
@@ -115,21 +133,20 @@ export function muscleSetBreakdown(
     for (const ex of w.exercises) {
       const n = ex.sets.filter(isWorkingSet).length
       if (n === 0) continue
-      credit(ex.muscle, ex, n, true)
+      credit(ex.muscle, ex, n, 'direct')
       for (const m of secondariesOf(ex.exerciseId)) {
         if (m === ex.muscle) continue
-        credit(m, ex, n * INDIRECT_SET_WEIGHT, false)
+        credit(m, ex, n * INDIRECT_SET_WEIGHT, 'indirect')
       }
     }
   }
 
   const out = new Map<MuscleGroup, MuscleSetBreakdown>()
   for (const [muscle, b] of acc) {
-    const topExercises = [...b.byExercise.entries()]
-      .map(([exerciseId, { name, sets }]) => ({ exerciseId, exerciseName: name, sets }))
-      .sort((a, z) => z.sets - a.sets || a.exerciseName.localeCompare(z.exerciseName))
-      .slice(0, topN)
-    out.set(muscle, { direct: b.direct, indirect: b.indirect, topExercises })
+    const exercises = [...b.byExercise.values()].sort(
+      (a, z) => z.sets - a.sets || a.exerciseName.localeCompare(z.exerciseName),
+    )
+    out.set(muscle, { direct: b.direct, indirect: b.indirect, exercises })
   }
   return out
 }
