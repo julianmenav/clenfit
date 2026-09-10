@@ -5,7 +5,12 @@
     "direct": "Directas",
     "indirect": "Indirectas",
     "topExercises": "Ejercicios frecuentes",
-    "help": "Las series indirectas (músculo secundario) cuentan la mitad."
+    "help": "Las series indirectas (músculo secundario) cuentan la mitad.",
+    "view": {
+      "chart": "Gráfico",
+      "list": "Lista"
+    },
+    "indirectTag": "indirecta"
   },
   "distribution": "Distribución muscular",
   "frequency": "Frecuencia de entrenamiento",

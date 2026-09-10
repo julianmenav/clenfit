@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartPie } from 'lucide-react'
+import { ChartBar, ChartPie, List } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addDays, parseISO, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
@@ -25,7 +25,7 @@ import {
   muscleSetBreakdown,
   repRangeDistribution,
   type BalanceGroup,
-  type MuscleSetBreakdown,
+  type MuscleExerciseContribution,
   type RepRange,
 } from '@/domain/analytics'
 import { muscleGroups, type WithId, type Workout } from '@/domain/types'
@@ -185,12 +185,15 @@ function BarList({ rows, total }: { rows: { label: string; value: number }[]; to
   )
 }
 
+type MuscleView = 'chart' | 'list'
+
 interface MuscleRow {
   muscle: string
   direct: number
   indirect: number
   total: number
-  topExercises: MuscleSetBreakdown['topExercises']
+  /** Every contributor, descending; sums to `total` exactly. */
+  exercises: MuscleExerciseContribution[]
   /* Recharts skips labels on zero-width rects and misindexes custom label
      content, so each stack segment gets a precomputed end label: the total on
      whichever segment is the last non-empty one, '' elsewhere. */
@@ -202,6 +205,8 @@ interface MuscleRow {
 function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
   const { t } = useTranslation(['analytics', 'exercises'])
   const { byId } = useExerciseIndex()
+  // the bars answer «how much»; the list answers «which exercises, exactly»
+  const [view, setView] = useState<MuscleView>('chart')
 
   const data = useMemo(() => {
     const breakdown = muscleSetBreakdown(workouts, (id) => byId.get(id)?.secondaryMuscles ?? [])
@@ -215,7 +220,7 @@ function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
           direct: b.direct,
           indirect: b.indirect,
           total,
-          topExercises: b.topExercises,
+          exercises: b.exercises,
           directEndLabel: b.indirect === 0 ? formatKg(total) : '',
           stackEndLabel: b.indirect > 0 ? formatKg(total) : '',
         }
@@ -227,72 +232,81 @@ function SetsPerMuscle({ workouts }: { workouts: WithId<Workout>[] }) {
   const height = Math.max(120, data.length * 34 + 30)
 
   return (
-    <Card title={t('analytics:setsPerMuscle')}>
-      <div className="flex items-center gap-4 pb-2 text-xs text-ink-2">
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-accent" />
-          {t('analytics:setsPerMuscleCard.direct')}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="size-2.5 rounded-full"
-            style={{ background: 'var(--cat-1)' }}
-          />
-          {t('analytics:setsPerMuscleCard.indirect')}
-        </span>
-      </div>
-      <div style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{ top: 0, right: 34, bottom: 0, left: 0 }}
-          >
-            <XAxis type="number" hide />
-            <YAxis
-              type="category"
-              dataKey="muscle"
-              width={88}
-              tick={{ fill: 'var(--ink-2)', fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip cursor={{ fill: 'var(--surface-2)' }} content={<MuscleTooltip />} />
-            <Bar
-              dataKey="direct"
-              stackId="m"
-              fill="var(--accent)"
-              barSize={18}
-              stroke="var(--surface)"
-              strokeWidth={1}
-            >
-              <LabelList
-                dataKey="directEndLabel"
-                position="right"
-                fill="var(--ink-2)"
-                fontSize={11}
+    <Card
+      title={t('analytics:setsPerMuscle')}
+      action={<ViewToggle view={view} onChange={setView} />}
+    >
+      {view === 'list' ? (
+        <MuscleSetList rows={data} />
+      ) : (
+        <>
+          <div className="flex items-center gap-4 pb-2 text-xs text-ink-2">
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2.5 rounded-full bg-accent" />
+              {t('analytics:setsPerMuscleCard.direct')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-full"
+                style={{ background: 'var(--cat-1)' }}
               />
-            </Bar>
-            <Bar
-              dataKey="indirect"
-              stackId="m"
-              fill="var(--cat-1)"
-              radius={[0, 4, 4, 0]}
-              barSize={18}
-              stroke="var(--surface)"
-              strokeWidth={1}
-            >
-              <LabelList
-                dataKey="stackEndLabel"
-                position="right"
-                fill="var(--ink-2)"
-                fontSize={11}
-              />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              {t('analytics:setsPerMuscleCard.indirect')}
+            </span>
+          </div>
+          <div style={{ height }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={data}
+                layout="vertical"
+                margin={{ top: 0, right: 34, bottom: 0, left: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="muscle"
+                  width={88}
+                  tick={{ fill: 'var(--ink-2)', fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip cursor={{ fill: 'var(--surface-2)' }} content={<MuscleTooltip />} />
+                <Bar
+                  dataKey="direct"
+                  stackId="m"
+                  fill="var(--accent)"
+                  barSize={18}
+                  stroke="var(--surface)"
+                  strokeWidth={1}
+                >
+                  <LabelList
+                    dataKey="directEndLabel"
+                    position="right"
+                    fill="var(--ink-2)"
+                    fontSize={11}
+                  />
+                </Bar>
+                <Bar
+                  dataKey="indirect"
+                  stackId="m"
+                  fill="var(--cat-1)"
+                  radius={[0, 4, 4, 0]}
+                  barSize={18}
+                  stroke="var(--surface)"
+                  strokeWidth={1}
+                >
+                  <LabelList
+                    dataKey="stackEndLabel"
+                    position="right"
+                    fill="var(--ink-2)"
+                    fontSize={11}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
       <p className="pt-1 text-xs text-ink-3">{t('analytics:setsPerMuscleCard.help')}</p>
     </Card>
   )
@@ -315,11 +329,11 @@ function MuscleTooltip({
         {t('setsPerMuscleCard.direct')} {formatKg(row.direct)} · {t('setsPerMuscleCard.indirect')}{' '}
         {formatKg(row.indirect)}
       </div>
-      {row.topExercises.length > 0 && (
+      {row.exercises.length > 0 && (
         <>
           <div className="mt-1.5 text-ink-3">{t('setsPerMuscleCard.topExercises')}</div>
           <ul className="mt-0.5 flex flex-col gap-0.5 text-ink-2">
-            {row.topExercises.map((e) => (
+            {row.exercises.slice(0, 3).map((e) => (
               <li key={e.exerciseId} className="flex justify-between gap-3">
                 <span className="min-w-0 truncate">{e.exerciseName}</span>
                 <span className="tnum shrink-0">{formatKg(e.sets)}</span>
@@ -329,6 +343,73 @@ function MuscleTooltip({
         </>
       )}
     </div>
+  )
+}
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: MuscleView
+  onChange: (view: MuscleView) => void
+}) {
+  const { t } = useTranslation('analytics')
+  const options = [
+    { key: 'chart', Icon: ChartBar },
+    { key: 'list', Icon: List },
+  ] as const
+  return (
+    <div className="flex gap-0.5 rounded-chip bg-surface-2 p-0.5">
+      {options.map(({ key, Icon }) => (
+        <button
+          key={key}
+          type="button"
+          aria-label={t(`setsPerMuscleCard.view.${key}`)}
+          aria-pressed={view === key}
+          onClick={() => onChange(key)}
+          className={`flex size-7 items-center justify-center rounded-chip ${
+            view === key ? 'bg-surface text-ink' : 'text-ink-3'
+          }`}
+        >
+          <Icon className="size-4" />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** The bars, itemised: each muscle's total and the exercises that add up to it. */
+function MuscleSetList({ rows }: { rows: MuscleRow[] }) {
+  const { t } = useTranslation('analytics')
+  return (
+    <ul className="flex flex-col divide-y divide-hairline">
+      {rows.map((row) => (
+        <li key={row.muscle} className="py-2 first:pt-0">
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="font-medium">{row.muscle}</span>
+            <span className="tnum font-semibold">{formatKg(row.total)}</span>
+          </div>
+          <ul className="mt-1 flex flex-col gap-0.5 pl-3 text-sm">
+            {row.exercises.map((e) => (
+              <li
+                key={e.exerciseId}
+                className={`flex justify-between gap-3 ${
+                  e.kind === 'indirect' ? 'text-ink-3' : 'text-ink-2'
+                }`}
+              >
+                <span className="min-w-0 truncate">
+                  {e.exerciseName}
+                  {e.kind === 'indirect' && (
+                    <span className="ml-1.5 text-xs">· {t('setsPerMuscleCard.indirectTag')}</span>
+                  )}
+                </span>
+                <span className="tnum shrink-0">{formatKg(e.sets)}</span>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -453,10 +534,21 @@ function SimpleTooltip({
   )
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="rounded-card border border-hairline bg-surface p-3">
-      <h2 className="pb-2 font-semibold">{title}</h2>
+      <div className="flex items-center justify-between gap-2 pb-2">
+        <h2 className="font-semibold">{title}</h2>
+        {action}
+      </div>
       {children}
     </section>
   )

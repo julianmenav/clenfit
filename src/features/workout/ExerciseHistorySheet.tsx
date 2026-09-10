@@ -8,16 +8,28 @@ export function ExerciseHistorySheet({
   open,
   onOpenChange,
   exerciseId,
+  currentPosition = null,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   exerciseId: string | null
+  /** Where the exercise sits in today's session (active workout only); lets the past rows be compared at a glance. */
+  currentPosition?: { position: number; total: number } | null
 }) {
   const { t } = useTranslation(['workout'])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t('workout:lastPerformances.title')}>
-      {open && exerciseId && <HistoryContent exerciseId={exerciseId} />}
+      {open && exerciseId && (
+        <>
+          {currentPosition && (
+            <p className="tnum pt-1 text-sm text-ink-2">
+              {t('workout:lastPerformances.today', currentPosition)}
+            </p>
+          )}
+          <HistoryContent exerciseId={exerciseId} />
+        </>
+      )}
     </Sheet>
   )
 }
