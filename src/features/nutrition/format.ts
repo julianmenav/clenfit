@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import type { Food, FoodEntry } from '@/domain/types'
+import type { Food, FoodEntry, Macros } from '@/domain/types'
 import { formatKg } from '@/lib/formatSet'
 
 type T = TFunction<['nutrition', 'common']>
@@ -31,6 +31,16 @@ export function entryAmountLabel(
   if (entry.kind === 'per100g') return t('nutrition:entry.amountGrams', { amount })
   if (entry.unitLabel) return t('nutrition:entry.amountUnits', { amount, unit: entry.unitLabel })
   return t('nutrition:entry.amountUnitsBare', { amount })
+}
+
+/** «165 kcal · 31 P · 0 H · 3,6 G» — only the components the food actually stores. */
+export function macrosLine(m: Macros, t: T): string {
+  const parts = [`${formatKcal(m.kcal)} ${t('common:units.kcal')}`]
+  for (const k of ['protein', 'carbs', 'fat'] as const) {
+    const v = m[k]
+    if (v != null) parts.push(`${formatGrams(v)} ${t(`nutrition:macros.${k}Letter`)}`)
+  }
+  return parts.join(' · ')
 }
 
 /** «por 100 g» · «por huevo» · «por unidad». */

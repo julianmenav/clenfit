@@ -24,7 +24,14 @@ import { cn } from '@/lib/utils'
 import { AddEntrySheet } from './AddEntrySheet'
 import { DayCard } from './DayCard'
 import { EditEntrySheet } from './EditEntrySheet'
-import { entryAmountLabel, formatGrams, formatIndex, formatKcal } from './format'
+import {
+  entryAmountLabel,
+  foodBaseLabel,
+  formatGrams,
+  formatIndex,
+  formatKcal,
+  macrosLine,
+} from './format'
 import { WeekStrip } from './WeekStrip'
 
 export function NutritionScreen() {
@@ -234,30 +241,36 @@ function EntryRow({
       <button
         type="button"
         onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-card border border-hairline bg-surface p-3 text-left active:bg-surface-2"
+        className="flex w-full flex-col gap-1 rounded-card border border-hairline bg-surface p-3 text-left active:bg-surface-2"
       >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{entry.name}</p>
-          <p className="mt-0.5 text-xs text-ink-3">{entryAmountLabel(entry, t)}</p>
-        </div>
-        <div className="tnum text-right text-sm">
-          <p className="font-semibold">{formatKcal(m.kcal)} kcal</p>
-          {m.protein != null && (
-            <p className="text-xs text-ink-2">
-              {formatGrams(m.protein)} {t('common:units.g')} {t('nutrition:macros.proteinShort')}
-            </p>
+        <div className="flex w-full items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{entry.name}</p>
+            <p className="mt-0.5 text-xs text-ink-3">{entryAmountLabel(entry, t)}</p>
+          </div>
+          <div className="tnum text-right text-sm">
+            <p className="font-semibold">{formatKcal(m.kcal)} kcal</p>
+            {m.protein != null && (
+              <p className="text-xs text-ink-2">
+                {formatGrams(m.protein)} {t('common:units.g')} {t('nutrition:macros.proteinShort')}
+              </p>
+            )}
+          </div>
+          {index != null && (
+            <span
+              className={cn(
+                'tnum shrink-0 rounded-chip border px-2 py-0.5 text-xs font-semibold',
+                index >= 1 ? 'border-accent/40 text-accent' : 'border-hairline text-ink-3',
+              )}
+            >
+              {formatIndex(index)}
+            </span>
           )}
         </div>
-        {index != null && (
-          <span
-            className={cn(
-              'tnum shrink-0 rounded-chip border px-2 py-0.5 text-xs font-semibold',
-              index >= 1 ? 'border-accent/40 text-accent' : 'border-hairline text-ink-3',
-            )}
-          >
-            {formatIndex(index)}
-          </span>
-        )}
+        {/* The food's stored base values, so a row explains where its numbers come from. */}
+        <p className="tnum w-full truncate text-[11px] text-ink-3">
+          {foodBaseLabel(entry, t)} · {macrosLine(entry.per, t)}
+        </p>
       </button>
     </li>
   )

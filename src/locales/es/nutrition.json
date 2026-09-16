@@ -22,7 +22,10 @@
     "protein": "Proteínas",
     "carbs": "Hidratos",
     "fat": "Grasas",
-    "proteinShort": "prot"
+    "proteinShort": "prot",
+    "proteinLetter": "P",
+    "carbsLetter": "H",
+    "fatLetter": "G"
   },
   "add": "Añadir",
   "addSheet": {
