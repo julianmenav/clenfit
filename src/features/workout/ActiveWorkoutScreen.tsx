@@ -59,7 +59,7 @@ export function ActiveWorkoutScreen() {
   // redirect, since clearing re-renders before the router transition commits).
   const finishedIdRef = useRef<string | null>(null)
 
-  // live PR toasts per set, so a misclick's toast can be retracted on edit/uncheck
+  // live PR toasts per set, so a misclick's toast can be retracted on uncheck
   const prToastIds = useRef(new Map<string, string | number>())
 
   if (!workout) {
@@ -86,7 +86,7 @@ export function ActiveWorkoutScreen() {
    * done this session). `set` must carry the definitive values; the store is
    * read fresh because mutations land synchronously within the same tick.
    */
-  function firePrToast(exIndex: number, setIndex: number, set: SetEntry, vibrate: boolean) {
+  function firePrToast(exIndex: number, setIndex: number, set: SetEntry) {
     const w = useActiveWorkoutStore.getState().workout ?? workout
     if (!w) return
     const ex = w.exercises[exIndex]
@@ -108,21 +108,10 @@ export function ActiveWorkoutScreen() {
         description: labels.join(' · '),
       })
       prToastIds.current.set(`${exIndex}:${setIndex}`, id)
-      if (vibrate) navigator.vibrate?.(100)
-    } else if (vibrate && isBaselineSession(stats) && priorSets.length === 0) {
+      navigator.vibrate?.(100)
+    } else if (isBaselineSession(stats) && priorSets.length === 0) {
       toast.message(t('workout:pr.baseline', { exercise: ex.exerciseName }))
     }
-  }
-
-  /** A completed set was edited: retract the stale toast and re-run detection. */
-  function reevaluateSet(exIndex: number, setIndex: number, patch: Partial<SetEntry>) {
-    const valueKeys = ['weightKg', 'reps', 'durationSeconds', 'distanceMeters'] as const
-    if (!valueKeys.some((k) => k in patch)) return
-    const current = useActiveWorkoutStore.getState().workout
-    const set = current?.exercises[exIndex]?.sets[setIndex]
-    if (!current || !set?.completed) return
-    dismissPrToast(`${exIndex}:${setIndex}`)
-    firePrToast(exIndex, setIndex, set, false)
   }
 
   /** First interaction with an exercise card = "about to start it". */
@@ -140,6 +129,7 @@ export function ActiveWorkoutScreen() {
     const ex = workout.exercises[exIndex]
     const set = ex.sets[setIndex]
 
+    // unchecking unlocks the values again (and retracts the toast it earned)
     if (set.completed) {
       store.updateSet(uid, exIndex, setIndex, { completed: false })
       dismissPrToast(`${exIndex}:${setIndex}`)
@@ -167,7 +157,7 @@ export function ActiveWorkoutScreen() {
     if (!hasData) return
 
     store.updateSet(uid, exIndex, setIndex, merged)
-    firePrToast(exIndex, setIndex, merged, true)
+    firePrToast(exIndex, setIndex, merged)
 
     // automatic rest
     const restSettings = profile?.settings.restTimer
@@ -264,14 +254,11 @@ export function ActiveWorkoutScreen() {
               <ExerciseCard
                 exercise={ex}
                 stats={statsMap?.get(ex.exerciseId)}
-                onPatchSet={(setIndex, patch) => {
-                  store.updateSet(uid, i, setIndex, patch)
-                  reevaluateSet(i, setIndex, patch)
-                }}
-                onPatchWeight={(setIndex, weightKg) => {
+                lockCompleted
+                onPatchSet={(setIndex, patch) => store.updateSet(uid, i, setIndex, patch)}
+                onPatchWeight={(setIndex, weightKg) =>
                   store.updateSetWeight(uid, i, setIndex, weightKg)
-                  reevaluateSet(i, setIndex, { weightKg })
-                }}
+                }
                 onCycleType={(setIndex) => store.cycleSetType(uid, i, setIndex)}
                 onCompleteSet={(setIndex) => completeSet(i, setIndex)}
                 onAddSet={() => store.addSet(uid, i)}

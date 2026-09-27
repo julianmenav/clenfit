@@ -29,6 +29,7 @@ export function SetRow({
   index,
   measurement,
   usesBodyweight = false,
+  locked = false,
   ghost,
   onPatch,
   onWeight,
@@ -40,6 +41,8 @@ export function SetRow({
   measurement: Measurement
   /** bodyweight reps exercise: shows an optional ballast («+kg») column */
   usesBodyweight?: boolean
+  /** values are read-only (a checked set in the live session; uncheck to edit) */
+  locked?: boolean
   /** the equivalent set from the last session (placeholder + autocomplete) */
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
@@ -77,6 +80,7 @@ export function SetRow({
         set={set}
         measurement={measurement}
         usesBodyweight={usesBodyweight}
+        locked={locked}
         ghost={ghost}
         onPatch={onPatch}
         onWeight={onWeight}
@@ -102,6 +106,7 @@ function Fields({
   set,
   measurement,
   usesBodyweight,
+  locked,
   ghost,
   onPatch,
   onWeight,
@@ -109,6 +114,7 @@ function Fields({
   set: SetEntry
   measurement: Measurement
   usesBodyweight: boolean
+  locked: boolean
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
   onWeight?: (weightKg: number | null) => void
@@ -121,6 +127,7 @@ function Fields({
     <NumericField
       key="w"
       ariaLabel={usesBodyweight ? t('ballast') : t('weight')}
+      disabled={locked}
       value={set.weightKg}
       format={formatKg}
       parse={parseDecimal}
@@ -135,6 +142,7 @@ function Fields({
     <NumericField
       key="r"
       ariaLabel={t('reps')}
+      disabled={locked}
       value={set.reps}
       format={String}
       parse={parseInteger}
@@ -148,6 +156,7 @@ function Fields({
     <NumericField
       key="t"
       ariaLabel={t('time')}
+      disabled={locked}
       value={set.durationSeconds}
       format={formatClock}
       parse={parseTimeToSeconds}
@@ -164,6 +173,7 @@ function Fields({
     <NumericField
       key="d"
       ariaLabel={t('distance')}
+      disabled={locked}
       value={set.distanceMeters}
       format={formatKm}
       parse={parseKmToMeters}

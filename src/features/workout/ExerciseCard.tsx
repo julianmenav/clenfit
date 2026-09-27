@@ -20,6 +20,7 @@ import { SetHeader, SetRow } from './SetRow'
 export function ExerciseCard({
   exercise,
   stats,
+  lockCompleted = false,
   onPatchSet,
   onPatchWeight,
   onCycleType,
@@ -34,6 +35,8 @@ export function ExerciseCard({
 }: {
   exercise: WorkoutExercise
   stats: WithId<ExerciseStats> | undefined
+  /** live session: a checked set's values are frozen until it is unchecked */
+  lockCompleted?: boolean
   onPatchSet: (setIndex: number, patch: Partial<SetEntry>) => void
   /** separate from onPatchSet so a weight can carry to the following sets */
   onPatchWeight?: (setIndex: number, weightKg: number | null) => void
@@ -134,6 +137,7 @@ export function ExerciseCard({
             index={i}
             measurement={exercise.measurement}
             usesBodyweight={exercise.usesBodyweight}
+            locked={lockCompleted && set.completed}
             ghost={ghostForSet(exercise.sets, i, stats?.lastPerformance?.sets)}
             onPatch={(patch) => onPatchSet(i, patch)}
             onWeight={onPatchWeight && ((v) => onPatchWeight(i, v))}
