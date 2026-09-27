@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
  * Touch-friendly numeric field: local state while typing (allows '60,'),
  * parsed commit on each keystroke and re-sync when the external value changes.
  * If empty and there's a ghost (last session), tapping adopts the ghost.
+ * Disabled, it renders the value as plain text (no border, no ghost adoption).
  */
 export function NumericField({
   value,
@@ -14,6 +15,7 @@ export function NumericField({
   ghost,
   onAdoptGhost,
   inputMode = 'decimal',
+  disabled = false,
   className,
   ariaLabel,
 }: {
@@ -25,6 +27,7 @@ export function NumericField({
   ghost?: string
   onAdoptGhost?: () => void
   inputMode?: 'decimal' | 'numeric'
+  disabled?: boolean
   className?: string
   ariaLabel?: string
 }) {
@@ -42,6 +45,7 @@ export function NumericField({
       inputMode={inputMode}
       enterKeyHint="next"
       aria-label={ariaLabel}
+      disabled={disabled}
       value={text}
       placeholder={ghost ?? ''}
       onFocus={(e) => {
@@ -62,6 +66,8 @@ export function NumericField({
       }}
       className={cn(
         'tnum h-11 w-full rounded-card border border-hairline bg-surface-2 text-center text-base font-medium outline-none placeholder:text-ink-3/70 focus:border-accent',
+        // iOS greys out disabled inputs via -webkit-text-fill-color, hence the override
+        'disabled:border-transparent disabled:bg-transparent disabled:text-ink disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--ink)]',
         className,
       )}
     />

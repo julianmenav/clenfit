@@ -10,13 +10,17 @@ export function formatKm(meters: number): string {
   return (Math.round(meters / 10) / 100).toString().replace('.', ',')
 }
 
-/** Compact summary of a set: '60 kg × 8', '12 reps', '1:30', '2,5 km · 12:00'. */
+/**
+ * Compact summary of a set: '60 kg × 8', '12 reps', '+10 kg × 12' (bodyweight
+ * with ballast), '1:30', '2,5 km · 12:00'.
+ */
 export function formatSet(set: SetEntry, measurement: Measurement): string {
   switch (measurement) {
     case 'weight_reps':
       if (set.weightKg == null && set.reps == null) return '—'
       return `${set.weightKg != null ? `${formatKg(set.weightKg)} kg` : '—'} × ${set.reps ?? '—'}`
     case 'reps_only':
+      if (set.weightKg != null) return `+${formatKg(set.weightKg)} kg × ${set.reps ?? '—'}`
       return set.reps != null ? `${set.reps} reps` : '—'
     case 'time_only':
       return set.durationSeconds != null ? formatClock(set.durationSeconds) : '—'

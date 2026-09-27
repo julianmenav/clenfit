@@ -1,5 +1,6 @@
-import { isWorkingSet } from './volume'
-import type { MuscleGroup, Workout } from './types'
+import { estimateSet1Rm } from './oneRepMax'
+import { exerciseVolume, isWorkingSet } from './volume'
+import type { MuscleGroup, OneRmFormula, Workout } from './types'
 
 /* ------------------------------- Rep ranges ------------------------------- */
 
@@ -184,6 +185,48 @@ export function runningMaxFlags(values: number[]): boolean[] {
     if (v > max) max = v
     return isPr
   })
+}
+
+/* ------------------------------- Progression ------------------------------- */
+
+export type ProgressionMetric = 'weight' | 'oneRm' | 'volume'
+
+export interface ProgressionPoint {
+  dateKey: string
+  value: number
+}
+
+/**
+ * One point per session for an exercise's progression chart, ascending by
+ * date. `weight` is the heaviest working load (the ballast on bodyweight
+ * exercises), `oneRm` the best estimate, `volume` the session's total using
+ * the workout's body-weight snapshot. Sessions without a value are dropped.
+ */
+export function progressionSeries(
+  workouts: Pick<Workout, 'dateKey' | 'exercises' | 'bodyWeightKg'>[],
+  exerciseId: string,
+  metric: ProgressionMetric,
+  formula: OneRmFormula,
+): ProgressionPoint[] {
+  const points: ProgressionPoint[] = []
+  for (const w of workouts) {
+    const entries = w.exercises.filter((e) => e.exerciseId === exerciseId)
+    if (entries.length === 0) continue
+    let value: number | null = null
+    if (metric === 'volume') {
+      const vol = entries.reduce((sum, e) => sum + exerciseVolume(e, w.bodyWeightKg), 0)
+      value = vol > 0 ? vol : null
+    } else {
+      const working = entries.flatMap((e) => e.sets).filter(isWorkingSet)
+      const values =
+        metric === 'weight'
+          ? working.map((s) => s.weightKg ?? 0).filter((v) => v > 0)
+          : working.map((s) => estimateSet1Rm(s, formula)).filter((v): v is number => v != null)
+      value = values.length ? Math.max(...values) : null
+    }
+    if (value != null) points.push({ dateKey: w.dateKey, value })
+  }
+  return points.sort((a, b) => a.dateKey.localeCompare(b.dateKey))
 }
 
 /* ---------------------------- Period comparison ---------------------------- */

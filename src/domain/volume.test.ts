@@ -58,11 +58,21 @@ describe('volumen', () => {
     expect(countWorkingSets(w)).toBe(2)
   })
 
-  it('el peso corporal sustituye la carga solo cuando la serie no tiene peso', () => {
+  it('con peso corporal, el peso de la serie es lastre y se suma encima', () => {
     expect(setVolume(set({ reps: 10 }), 80)).toBe(800)
-    expect(setVolume(set({ weightKg: 20, reps: 10 }), 80)).toBe(200)
+    expect(setVolume(set({ weightKg: 10, reps: 10 }), 80)).toBe(900)
     expect(setVolume(set({ reps: 10, type: 'warmup' }), 80)).toBe(0)
     expect(setVolume(set({ reps: 10, completed: false }), 80)).toBe(0)
+  })
+
+  it('sin peso corporal conocido, el lastre cuenta solo (mejor que nada)', () => {
+    expect(setVolume(set({ weightKg: 10, reps: 10 }), null)).toBe(100)
+  })
+
+  it('exerciseVolume suma el lastre al peso corporal solo si el ejercicio lo usa', () => {
+    const bw = { ...exercise([set({ weightKg: 10, reps: 10 })]), usesBodyweight: true }
+    expect(exerciseVolume(bw, 80)).toBe(900)
+    expect(exerciseVolume(exercise([set({ weightKg: 10, reps: 10 })]), 80)).toBe(100)
   })
 
   it('exerciseVolume aplica el peso corporal solo si el ejercicio lo usa', () => {

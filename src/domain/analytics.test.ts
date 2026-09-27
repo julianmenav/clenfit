@@ -6,6 +6,7 @@ import {
   muscleCoverage,
   muscleBalance,
   muscleSetBreakdown,
+  progressionSeries,
   repRangeDistribution,
   repRangeOf,
   runningMaxFlags,
@@ -319,5 +320,93 @@ describe('muscleCoverage', () => {
 
   it('sin historial devuelve una lista vacía', () => {
     expect(muscleCoverage([], '2026-07-14', daysSince)).toEqual([])
+  })
+})
+
+describe('progressionSeries', () => {
+  function session(
+    dateKey: string,
+    sets: SetEntry[],
+    opts: { usesBodyweight?: boolean; bodyWeightKg?: number | null; twice?: boolean } = {},
+  ): Pick<Workout, 'dateKey' | 'exercises' | 'bodyWeightKg'> {
+    const base = workoutWithSets(sets).exercises[0]
+    const ex = { ...base, usesBodyweight: opts.usesBodyweight ?? false }
+    return {
+      dateKey,
+      bodyWeightKg: opts.bodyWeightKg ?? null,
+      exercises: opts.twice ? [ex, { ...ex, order: 1 }] : [ex],
+    }
+  }
+
+  it('peso: máximo de las series efectivas por sesión, ordenado por fecha, sin sesiones vacías', () => {
+    const series = progressionSeries(
+      [
+        session('2026-03-02', [set({ weightKg: 60, reps: 8 }), set({ weightKg: 65, reps: 5 })]),
+        session('2026-03-01', [
+          set({ weightKg: 100, reps: 3, type: 'warmup' }),
+          set({ weightKg: 50, reps: 10 }),
+        ]),
+        session('2026-03-03', [set({ reps: 10 })]),
+      ],
+      'x',
+      'weight',
+      'epley',
+    )
+    expect(series).toEqual([
+      { dateKey: '2026-03-01', value: 50 },
+      { dateKey: '2026-03-02', value: 65 },
+    ])
+  })
+
+  it('1RM: la mejor estimación de la sesión con la fórmula elegida', () => {
+    const series = progressionSeries(
+      [session('2026-03-01', [set({ weightKg: 100, reps: 1 }), set({ weightKg: 90, reps: 6 })])],
+      'x',
+      'oneRm',
+      'epley',
+    )
+    expect(series).toEqual([{ dateKey: '2026-03-01', value: 90 * (1 + 6 / 30) }])
+  })
+
+  it('volumen: en ejercicios a peso corporal suma el peso del entrenamiento al lastre', () => {
+    const series = progressionSeries(
+      [
+        session('2026-03-01', [set({ reps: 10 }), set({ weightKg: 10, reps: 8 })], {
+          usesBodyweight: true,
+          bodyWeightKg: 80,
+        }),
+        session('2026-03-02', [set({ weightKg: 10, reps: 10 })], { usesBodyweight: true }),
+        session('2026-03-03', [set({ weightKg: 10, reps: 10 })], { bodyWeightKg: 80 }),
+      ],
+      'x',
+      'volume',
+      'epley',
+    )
+    expect(series).toEqual([
+      { dateKey: '2026-03-01', value: 80 * 10 + 90 * 8 },
+      { dateKey: '2026-03-02', value: 100 }, // body weight unknown: ballast alone
+      { dateKey: '2026-03-03', value: 100 }, // not a bodyweight exercise: ignores it
+    ])
+  })
+
+  it('el mismo ejercicio dos veces en una sesión se funde en un punto', () => {
+    const w = session('2026-03-01', [set({ weightKg: 60, reps: 10 })], { twice: true })
+    expect(progressionSeries([w], 'x', 'weight', 'epley')).toEqual([
+      { dateKey: '2026-03-01', value: 60 },
+    ])
+    expect(progressionSeries([w], 'x', 'volume', 'epley')).toEqual([
+      { dateKey: '2026-03-01', value: 1200 },
+    ])
+  })
+
+  it('ignora otros ejercicios', () => {
+    expect(
+      progressionSeries(
+        [session('2026-03-01', [set({ weightKg: 60, reps: 10 })])],
+        'y',
+        'weight',
+        'epley',
+      ),
+    ).toEqual([])
   })
 })

@@ -127,6 +127,7 @@ export type CustomExercise = z.infer<typeof customExerciseSchema>
 export const setEntrySchema = z.object({
   order: z.number().int(),
   type: z.enum(setTypes),
+  /** The load; on a `usesBodyweight` exercise it is the ballast added on top of body weight. */
   weightKg: z.number().nullable(),
   reps: z.number().int().nullable(),
   durationSeconds: z.number().nullable(),
