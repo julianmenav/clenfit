@@ -101,6 +101,7 @@
     "noHistory": "Todavía no has registrado este ejercicio.",
     "metric": {
       "weight": "Peso máx.",
+      "ballast": "Lastre máx.",
       "oneRm": "1RM est.",
       "volume": "Volumen"
     },

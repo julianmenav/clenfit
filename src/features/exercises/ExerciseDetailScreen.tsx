@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import { BackButton } from '@/components/ui/BackButton'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { ExerciseMenu } from './ExerciseMenu'
 import { useExerciseStats, useExerciseWorkouts, useUserProfile } from '@/data/hooks'
+import { progressionSeries, type ProgressionMetric } from '@/domain/analytics'
 import type { PrType } from '@/domain/types'
 import { defUsesBodyweight } from '@/domain/volume'
 import { formatShortDate } from '@/lib/dates'
@@ -17,8 +18,6 @@ const ProgressionChart = lazy(() =>
   import('./ProgressionChart').then((m) => ({ default: m.ProgressionChart })),
 )
 
-export type ProgressionMetric = 'weight' | 'oneRm' | 'volume'
-
 export function ExerciseDetailScreen() {
   const { exerciseId = '' } = useParams()
   const navigate = useNavigate()
@@ -27,14 +26,29 @@ export function ExerciseDetailScreen() {
   const stats = useExerciseStats(exerciseId)
   const workouts = useExerciseWorkouts(exerciseId)
   const profile = useUserProfile()
-  const [metric, setMetric] = useState<ProgressionMetric>('weight')
+  const [selectedMetric, setSelectedMetric] = useState<ProgressionMetric>('weight')
 
   const def = byId.get(exerciseId)
   const name = def?.name ?? stats?.exerciseName ?? exerciseId
   const formula = profile?.settings.oneRmFormula ?? 'epley'
 
   // on a bodyweight exercise the recorded weight is ballast, hence the '+'
-  const loadPrefix = def && defUsesBodyweight(def) ? '+' : ''
+  const isBodyweight = def != null && defUsesBodyweight(def)
+  const loadPrefix = isBodyweight ? '+' : ''
+
+  // only metrics with a trend to show (≥ 2 sessions with a value) get a toggle
+  const availableMetrics = useMemo(
+    () =>
+      (['weight', 'oneRm', 'volume'] as const).filter(
+        (m) => progressionSeries(workouts ?? [], exerciseId, m, formula).length >= 2,
+      ),
+    [workouts, exerciseId, formula],
+  )
+  const metric = availableMetrics.includes(selectedMetric) ? selectedMetric : availableMetrics[0]
+  const metricLabel = (m: ProgressionMetric) =>
+    m === 'weight' && isBodyweight
+      ? t('exercises:detail.metric.ballast')
+      : t(`exercises:detail.metric.${m}`)
   const prTypes: { type: PrType; label: string; unit: string; prefix?: string }[] = [
     {
       type: 'heaviestWeightKg',
@@ -52,8 +66,6 @@ export function ExerciseDetailScreen() {
     { type: 'mostReps', label: t('workout:pr.types.mostReps'), unit: 'reps' },
   ]
   const prs = prTypes.filter((p) => stats?.prs[p.type] != null)
-
-  const isWeightBased = def == null || def.measurement === 'weight_reps'
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
@@ -105,21 +117,21 @@ export function ExerciseDetailScreen() {
             </section>
           )}
 
-          {isWeightBased && workouts.length > 1 && (
+          {metric != null && (
             <section>
               <div className="flex items-center justify-between pb-2">
                 <h2 className="font-semibold">{t('exercises:detail.progression')}</h2>
                 <div className="flex gap-1 rounded-chip bg-surface-2 p-0.5">
-                  {(['weight', 'oneRm', 'volume'] as const).map((m) => (
+                  {availableMetrics.map((m) => (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setMetric(m)}
+                      onClick={() => setSelectedMetric(m)}
                       className={`rounded-chip px-2.5 py-1 text-xs font-medium ${
                         metric === m ? 'bg-surface text-ink' : 'text-ink-3'
                       }`}
                     >
-                      {t(`exercises:detail.metric.${m}`)}
+                      {metricLabel(m)}
                     </button>
                   ))}
                 </div>
@@ -130,6 +142,7 @@ export function ExerciseDetailScreen() {
                   exerciseId={exerciseId}
                   metric={metric}
                   formula={formula}
+                  valuePrefix={metric === 'weight' ? loadPrefix : ''}
                 />
               </Suspense>
             </section>
