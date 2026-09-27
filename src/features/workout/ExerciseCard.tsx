@@ -63,7 +63,9 @@ export function ExerciseCard({
             <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-3">
               <Trophy className="size-3.5 text-status-warn" />
               {t('workout:best')}:{' '}
-              {best != null ? `${formatKg(best)} ${t('common:units.kg')}` : `${bestReps} reps`}
+              {best != null
+                ? `${exercise.usesBodyweight ? '+' : ''}${formatKg(best)} ${t('common:units.kg')}`
+                : `${bestReps} reps`}
             </p>
           )}
         </div>
@@ -123,7 +125,7 @@ export function ExerciseCard({
         </KebabMenu>
       </header>
 
-      <SetHeader measurement={exercise.measurement} />
+      <SetHeader measurement={exercise.measurement} usesBodyweight={exercise.usesBodyweight} />
       <div className="flex flex-col gap-1">
         {exercise.sets.map((set, i) => (
           <SetRow
@@ -131,6 +133,7 @@ export function ExerciseCard({
             set={set}
             index={i}
             measurement={exercise.measurement}
+            usesBodyweight={exercise.usesBodyweight}
             ghost={ghostForSet(exercise.sets, i, stats?.lastPerformance?.sets)}
             onPatch={(patch) => onPatchSet(i, patch)}
             onWeight={onPatchWeight && ((v) => onPatchWeight(i, v))}

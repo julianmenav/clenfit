@@ -192,6 +192,13 @@ describe('récords con peso corporal', () => {
     expect(c.best1RmBrzycki).toBeUndefined()
   })
 
+  it('el lastre es la carga explícita: récord de peso = lastre, volumen = (corporal + lastre) × reps', () => {
+    const c = setCandidates(set({ weightKg: 10, reps: 10 }), 80)
+    expect(c.heaviestWeightKg).toBe(10)
+    expect(c.best1RmEpley).toBeCloseTo(10 * (1 + 10 / 30))
+    expect(c.bestSetVolumeKg).toBe(900)
+  })
+
   it('sessionCandidates suma el volumen de sesión con peso corporal', () => {
     const c = sessionCandidates([set({ reps: 10 }), set({ reps: 8 })], 80)
     expect(c.bestSessionVolumeKg).toBe(800 + 640)

@@ -7,6 +7,7 @@ import { useExerciseIndex } from '@/data/exerciseIndex'
 import { ExerciseMenu } from './ExerciseMenu'
 import { useExerciseStats, useExerciseWorkouts, useUserProfile } from '@/data/hooks'
 import type { PrType } from '@/domain/types'
+import { defUsesBodyweight } from '@/domain/volume'
 import { formatShortDate } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { ExerciseSessionSummary } from './ExerciseSessionSummary'
@@ -32,8 +33,15 @@ export function ExerciseDetailScreen() {
   const name = def?.name ?? stats?.exerciseName ?? exerciseId
   const formula = profile?.settings.oneRmFormula ?? 'epley'
 
-  const prTypes: { type: PrType; label: string; unit: string }[] = [
-    { type: 'heaviestWeightKg', label: t('workout:pr.types.heaviestWeight'), unit: 'kg' },
+  // on a bodyweight exercise the recorded weight is ballast, hence the '+'
+  const loadPrefix = def && defUsesBodyweight(def) ? '+' : ''
+  const prTypes: { type: PrType; label: string; unit: string; prefix?: string }[] = [
+    {
+      type: 'heaviestWeightKg',
+      label: t('workout:pr.types.heaviestWeight'),
+      unit: 'kg',
+      prefix: loadPrefix,
+    },
     {
       type: formula === 'epley' ? 'best1RmEpley' : 'best1RmBrzycki',
       label: t('workout:pr.types.best1Rm'),
@@ -78,11 +86,12 @@ export function ExerciseDetailScreen() {
                 {t('exercises:detail.prs')}
               </h2>
               <div className="grid grid-cols-2 gap-2">
-                {prs.map(({ type, label, unit }) => {
+                {prs.map(({ type, label, unit, prefix = '' }) => {
                   const rec = stats.prs[type]!
                   return (
                     <div key={type} className="rounded-card border border-hairline bg-surface p-3">
                       <div className="tnum text-lg font-bold">
+                        {prefix}
                         {unit === 'kg' ? formatKg(rec.value) : rec.value} {unit}
                       </div>
                       <div className="text-xs text-ink-3">{label}</div>

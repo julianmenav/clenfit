@@ -28,6 +28,7 @@ export function SetRow({
   set,
   index,
   measurement,
+  usesBodyweight = false,
   ghost,
   onPatch,
   onWeight,
@@ -37,6 +38,8 @@ export function SetRow({
   set: SetEntry
   index: number
   measurement: Measurement
+  /** bodyweight reps exercise: shows an optional ballast («+kg») column */
+  usesBodyweight?: boolean
   /** the equivalent set from the last session (placeholder + autocomplete) */
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
@@ -73,6 +76,7 @@ export function SetRow({
       <Fields
         set={set}
         measurement={measurement}
+        usesBodyweight={usesBodyweight}
         ghost={ghost}
         onPatch={onPatch}
         onWeight={onWeight}
@@ -97,12 +101,14 @@ export function SetRow({
 function Fields({
   set,
   measurement,
+  usesBodyweight,
   ghost,
   onPatch,
   onWeight,
 }: {
   set: SetEntry
   measurement: Measurement
+  usesBodyweight: boolean
   ghost?: SetEntry
   onPatch: (patch: Partial<SetEntry>) => void
   onWeight?: (weightKg: number | null) => void
@@ -110,10 +116,11 @@ function Fields({
   const { t } = useTranslation('workout')
 
   const commitWeight = onWeight ?? ((v: number | null) => onPatch({ weightKg: v }))
+  // ballast on a bodyweight exercise is stored in weightKg too (see setEntrySchema)
   const weight = (
     <NumericField
       key="w"
-      ariaLabel={t('weight')}
+      ariaLabel={usesBodyweight ? t('ballast') : t('weight')}
       value={set.weightKg}
       format={formatKg}
       parse={parseDecimal}
@@ -179,7 +186,14 @@ function Fields({
         </>
       )
     case 'reps_only':
-      return reps
+      return usesBodyweight ? (
+        <>
+          {weight}
+          {reps}
+        </>
+      ) : (
+        reps
+      )
     case 'time_only':
       return time
     case 'weight_time':
@@ -200,13 +214,21 @@ function Fields({
 }
 
 /** Column header consistent with Fields. */
-export function SetHeader({ measurement }: { measurement: Measurement }) {
+export function SetHeader({
+  measurement,
+  usesBodyweight = false,
+}: {
+  measurement: Measurement
+  usesBodyweight?: boolean
+}) {
   const { t } = useTranslation(['workout', 'common'])
   const cols: string[] =
     measurement === 'weight_reps'
       ? [t('common:units.kg'), t('workout:reps')]
       : measurement === 'reps_only'
-        ? [t('workout:reps')]
+        ? usesBodyweight
+          ? [t('workout:ballastHeader'), t('workout:reps')]
+          : [t('workout:reps')]
         : measurement === 'time_only'
           ? [t('workout:time')]
           : measurement === 'weight_time'

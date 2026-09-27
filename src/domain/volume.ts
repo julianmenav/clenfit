@@ -12,11 +12,12 @@ export function defUsesBodyweight(def: Pick<ExerciseDef, 'equipment' | 'measurem
 
 /**
  * Volume of a set (kg × reps). 0 if it doesn't count or isn't weight-based.
- * `bodyWeightKg` substitutes the load only when the set has no explicit weight.
+ * With `bodyWeightKg` (bodyweight exercises) the set's weight is ballast and
+ * adds on top of it; without it, the set's weight is the whole load.
  */
 export function setVolume(set: SetEntry, bodyWeightKg?: number | null): number {
   if (!isWorkingSet(set)) return 0
-  const weight = set.weightKg ?? bodyWeightKg ?? null
+  const weight = bodyWeightKg != null ? bodyWeightKg + (set.weightKg ?? 0) : set.weightKg
   if (weight == null || set.reps == null) return 0
   return weight * set.reps
 }
