@@ -15,7 +15,7 @@
     "over": "Te has pasado {{kcal}} kcal",
     "index": "Índice proteico",
     "empty": "Nada registrado todavía. Añade lo primero que hayas comido.",
-    "future": "Todavía no ha llegado este día."
+    "future": "Nada planificado todavía. Añade lo que vas a comer."
   },
   "macros": {
     "kcal": "kcal",

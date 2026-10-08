@@ -26,13 +26,12 @@ export function WeekStrip({
           <button
             key={cell.dateKey}
             type="button"
-            disabled={future}
             aria-pressed={selected}
             onClick={() => onSelect(cell.dateKey)}
             className={cn(
               'flex flex-col items-center gap-1 rounded-card border px-1 py-2',
               selected ? 'border-accent bg-surface-2' : 'border-hairline bg-surface',
-              future && 'opacity-40',
+              future && !cell.logged && !selected && 'opacity-60',
             )}
           >
             <span

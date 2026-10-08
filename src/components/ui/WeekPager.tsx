@@ -2,23 +2,26 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatWeekRange } from '@/lib/dates'
 
 /**
- * Mon–Sun stepper on week keys. › stops at the current week; ‹ stops at
- * `minWeekStart` (null = unbounded).
+ * Mon–Sun stepper on week keys. ‹ stops at `minWeekStart`, › stops at
+ * `maxWeekStart` (null = unbounded).
  */
 export function WeekPager({
   weekStart,
   currentWeekStart,
   minWeekStart,
+  maxWeekStart,
   onStep,
   labels,
 }: {
   weekStart: string
   currentWeekStart: string
   minWeekStart: string | null
+  maxWeekStart: string | null
   onStep: (dir: -1 | 1) => void
   labels: { current: string; prev: string; next: string }
 }) {
-  const isCurrent = weekStart >= currentWeekStart
+  const isCurrent = weekStart === currentWeekStart
+  const atMax = maxWeekStart != null && weekStart >= maxWeekStart
   const atMin = minWeekStart != null && weekStart <= minWeekStart
 
   return (
@@ -38,7 +41,7 @@ export function WeekPager({
       <button
         type="button"
         aria-label={labels.next}
-        disabled={isCurrent}
+        disabled={atMax}
         onClick={() => onStep(1)}
         className="flex size-9 items-center justify-center rounded-card text-ink-2 active:bg-surface-2 disabled:opacity-30"
       >

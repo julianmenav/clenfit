@@ -95,6 +95,7 @@ export function AnalyticsScreen() {
           weekStart={weekStart}
           currentWeekStart={currentWeekStart}
           minWeekStart={minWeekStart ?? currentWeekStart}
+          maxWeekStart={currentWeekStart}
           onStep={(dir) => setWeekStart((w) => addWeeksToKey(w, dir))}
           labels={{
             current: t('analytics:week.current'),

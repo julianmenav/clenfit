@@ -87,7 +87,7 @@ export function NutritionScreen() {
   const summary = days ? weekSummary(dayKeys, days, goal) : null
   const totals = dayTotals(selectedDay?.entries ?? [])
   const writeGoal = goalForDay(selectedDay, selectedKey, todayKey, goal)
-  const canLog = selectedKey <= todayKey
+  const isFuture = selectedKey > todayKey
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-6 pb-24">
@@ -121,6 +121,7 @@ export function NutritionScreen() {
         weekStart={weekStart}
         currentWeekStart={currentWeekStart}
         minWeekStart={null}
+        maxWeekStart={null}
         onStep={stepWeek}
         labels={{
           current: t('nutrition:week.current'),
@@ -153,22 +154,20 @@ export function NutritionScreen() {
         </ul>
       ) : (
         <p className="px-2 text-center text-sm text-ink-3">
-          {canLog ? t('nutrition:day.empty') : t('nutrition:day.future')}
+          {isFuture ? t('nutrition:day.future') : t('nutrition:day.empty')}
         </p>
       )}
 
-      {canLog && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-lg justify-center px-4 pb-3 lg:bottom-0">
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="pointer-events-auto flex h-12 items-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent shadow-lg active:scale-95"
-          >
-            <Plus className="size-5" strokeWidth={2.5} />
-            {t('nutrition:add')}
-          </button>
-        </div>
-      )}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-lg justify-center px-4 pb-3 lg:bottom-0">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="pointer-events-auto flex h-12 items-center gap-2 rounded-full bg-accent px-6 font-semibold text-on-accent shadow-lg active:scale-95"
+        >
+          <Plus className="size-5" strokeWidth={2.5} />
+          {t('nutrition:add')}
+        </button>
+      </div>
 
       <AddEntrySheet
         open={adding}
