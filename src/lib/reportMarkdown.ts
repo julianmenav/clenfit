@@ -98,9 +98,7 @@ function session(s: ReportSession): string[] {
     const groups = s.prs.map((g) => `${g.exerciseName}${SEP}${g.rows.map(prRow).join(SEP)}`)
     lines.push(`${i18n.t('report:md.sessions.prs')}: ${groups.join('; ')}`)
   }
-  lines.push(
-    i18n.t('report:md.sessions.total', { sets: s.workingSets, kg: formatKg(s.volumeKg) }),
-  )
+  lines.push(i18n.t('report:md.sessions.total', { sets: s.workingSets, kg: formatKg(s.volumeKg) }))
   return lines
 }
 
@@ -141,9 +139,7 @@ function week(w: ReportWeek): string[] {
       `${i18n.t(`exercises:muscle.${m.muscle}`)} ${formatKg(m.direct + m.indirect)} (${formatKg(m.direct)} + ${formatKg(m.indirect)})`,
   )
   const balance = balanceOrder.map((g) => `${i18n.t(`analytics:balance.${g}`)} ${w.balance[g]}`)
-  const ranges = repRangeOrder.map(
-    (k) => `${i18n.t(`analytics:repRanges.${k}`)} ${w.repRanges[k]}`,
-  )
+  const ranges = repRangeOrder.map((k) => `${i18n.t(`analytics:repRanges.${k}`)} ${w.repRanges[k]}`)
   return [
     `### ${i18n.t('report:md.weekly.week', { from: w.weekStartKey, to: w.weekEndKey })}`,
     `- ${i18n.t('report:md.weekly.totals', {

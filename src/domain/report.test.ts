@@ -188,7 +188,12 @@ describe('buildReport · glosario', () => {
           workout({
             dateKey: '2026-09-14',
             exercises: [
-              exercise({ exerciseId: 'gone', exerciseName: 'Curl raro', muscle: 'biceps', sets: [] }),
+              exercise({
+                exerciseId: 'gone',
+                exerciseName: 'Curl raro',
+                muscle: 'biceps',
+                sets: [],
+              }),
             ],
           }),
         ],
@@ -255,9 +260,33 @@ describe('buildReport · sesiones', () => {
       notes: 'hombro molesto',
     })
     expect(s.exercises[0].sets).toEqual([
-      { position: 1, type: 'warmup', weightKg: 40, reps: 10, durationSeconds: null, distanceMeters: null, rpe: null },
-      { position: 2, type: 'normal', weightKg: 80, reps: 6, durationSeconds: null, distanceMeters: null, rpe: 8 },
-      { position: 3, type: 'failure', weightKg: 80, reps: 5, durationSeconds: null, distanceMeters: null, rpe: null },
+      {
+        position: 1,
+        type: 'warmup',
+        weightKg: 40,
+        reps: 10,
+        durationSeconds: null,
+        distanceMeters: null,
+        rpe: null,
+      },
+      {
+        position: 2,
+        type: 'normal',
+        weightKg: 80,
+        reps: 6,
+        durationSeconds: null,
+        distanceMeters: null,
+        rpe: 8,
+      },
+      {
+        position: 3,
+        type: 'failure',
+        weightKg: 80,
+        reps: 5,
+        durationSeconds: null,
+        distanceMeters: null,
+        rpe: null,
+      },
     ])
   })
 
@@ -318,9 +347,27 @@ describe('buildReport · sesiones', () => {
           workout({
             dateKey: '2026-09-14',
             prDetails: [
-              { exerciseId: 'bench', exerciseName: 'Press banca', type: 'best1RmEpley', value: 96, previousValue: 94 },
-              { exerciseId: 'bench', exerciseName: 'Press banca', type: 'best1RmBrzycki', value: 95, previousValue: 93 },
-              { exerciseId: 'bench', exerciseName: 'Press banca', type: 'heaviestWeightKg', value: 82.5, previousValue: null },
+              {
+                exerciseId: 'bench',
+                exerciseName: 'Press banca',
+                type: 'best1RmEpley',
+                value: 96,
+                previousValue: 94,
+              },
+              {
+                exerciseId: 'bench',
+                exerciseName: 'Press banca',
+                type: 'best1RmBrzycki',
+                value: 95,
+                previousValue: 93,
+              },
+              {
+                exerciseId: 'bench',
+                exerciseName: 'Press banca',
+                type: 'heaviestWeightKg',
+                value: 82.5,
+                previousValue: null,
+              },
             ],
           }),
         ],
@@ -339,7 +386,9 @@ describe('buildReport · sesiones', () => {
   })
 
   it('sin prDetails (docs antiguos) devuelve una lista vacía', () => {
-    const r = buildReport(input({ workouts: [workout({ dateKey: '2026-09-14', prDetails: null })] }))
+    const r = buildReport(
+      input({ workouts: [workout({ dateKey: '2026-09-14', prDetails: null })] }),
+    )
     expect(r.sessions![0].prs).toEqual([])
   })
 })
@@ -349,13 +398,28 @@ describe('buildReport · resumen semanal', () => {
     const r = buildReport(
       input({
         workouts: [
-          workout({ dateKey: '2026-09-22', exercises: [exercise({ sets: [set({ weightKg: 100, reps: 5 })] })] }),
-          workout({ dateKey: '2026-09-14', exercises: [exercise({ sets: [set({ weightKg: 80, reps: 5 })] })] }),
-          workout({ dateKey: '2026-09-16', exercises: [exercise({ sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })] })] }),
+          workout({
+            dateKey: '2026-09-22',
+            exercises: [exercise({ sets: [set({ weightKg: 100, reps: 5 })] })],
+          }),
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [exercise({ sets: [set({ weightKg: 80, reps: 5 })] })],
+          }),
+          workout({
+            dateKey: '2026-09-16',
+            exercises: [
+              exercise({
+                sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })],
+              }),
+            ],
+          }),
         ],
       }),
     )
-    expect(r.weeks?.map((w) => [w.weekStartKey, w.weekEndKey, w.sessions, w.workingSets, w.volumeKg])).toEqual([
+    expect(
+      r.weeks?.map((w) => [w.weekStartKey, w.weekEndKey, w.sessions, w.workingSets, w.volumeKg]),
+    ).toEqual([
       ['2026-09-14', '2026-09-20', 2, 3, 1200],
       ['2026-09-21', '2026-09-27', 1, 1, 500],
     ])
@@ -368,7 +432,9 @@ describe('buildReport · resumen semanal', () => {
           workout({
             dateKey: '2026-09-14',
             exercises: [
-              exercise({ sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })] }),
+              exercise({
+                sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })],
+              }),
             ],
           }),
         ],
@@ -422,7 +488,9 @@ describe('buildReport · progresión 1RM', () => {
 
   it('respeta minProgressionSessions', () => {
     const two = ['14', '15'].map((d) => benchDay(`2026-09-${d}`, 80, 5))
-    expect(buildReport(input({ workouts: two, minProgressionSessions: 2 })).progression).toHaveLength(1)
+    expect(
+      buildReport(input({ workouts: two, minProgressionSessions: 2 })).progression,
+    ).toHaveLength(1)
   })
 
   it('un punto por sesión: el mejor 1RM y la serie que lo produce, fechas ascendentes', () => {
@@ -511,7 +579,11 @@ describe('buildReport · progresión 1RM', () => {
 
   it('usa la fórmula pedida', () => {
     const r = buildReport(
-      input({ formula: 'brzycki', minProgressionSessions: 1, workouts: [benchDay('2026-09-14', 80, 5)] }),
+      input({
+        formula: 'brzycki',
+        minProgressionSessions: 1,
+        workouts: [benchDay('2026-09-14', 80, 5)],
+      }),
     )
     expect(r.progression![0].points[0].oneRm).toBeCloseTo((80 * 36) / (37 - 5))
   })
@@ -525,8 +597,17 @@ describe('buildReport · progresión 1RM', () => {
           workout({
             dateKey: '2026-09-14',
             exercises: [
-              exercise({ exerciseId: 's', exerciseName: 'Sentadilla', sets: [set({ weightKg: 100, reps: 5 })] }),
-              exercise({ exerciseId: 'c', exerciseName: 'Curl', order: 1, sets: [set({ weightKg: 20, reps: 10 })] }),
+              exercise({
+                exerciseId: 's',
+                exerciseName: 'Sentadilla',
+                sets: [set({ weightKg: 100, reps: 5 })],
+              }),
+              exercise({
+                exerciseId: 'c',
+                exerciseName: 'Curl',
+                order: 1,
+                sets: [set({ weightKg: 20, reps: 10 })],
+              }),
             ],
           }),
         ],
