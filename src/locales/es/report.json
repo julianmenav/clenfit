@@ -1,0 +1,80 @@
+{
+  "open": "Informe",
+  "title": "Informe de entrenamiento",
+  "range": {
+    "title": "Rango",
+    "4w": "4 semanas",
+    "8w": "8 semanas",
+    "3m": "3 meses",
+    "custom": "Personalizado",
+    "from": "Desde",
+    "to": "Hasta",
+    "empty": "Indica las dos fechas.",
+    "inverted": "La fecha de inicio debe ser anterior a la de fin.",
+    "future": "La fecha de fin no puede ser posterior a hoy."
+  },
+  "sections": {
+    "title": "Secciones",
+    "sessions": "Sesiones",
+    "weekly": "Resumen semanal",
+    "progression": "Progresión 1RM"
+  },
+  "sessionsInRange_one": "{{count}} sesión en el rango",
+  "sessionsInRange_other": "{{count}} sesiones en el rango",
+  "generate": "Generar",
+  "back": "Cambiar opciones",
+  "size": "{{sessions}} sesiones · {{lines}} líneas · {{kb}} KB",
+  "download": "Descargar",
+  "copy": "Copiar",
+  "copied": "Informe copiado",
+  "copyFailed": "No se ha podido copiar",
+  "downloaded": "Informe descargado",
+  "downloadFailed": "No se ha podido descargar el informe",
+  "md": {
+    "title": "Informe de entrenamiento",
+    "context": {
+      "title": "Contexto",
+      "range": "Rango: {{from}} → {{to}} ({{days}}, {{sessions}})",
+      "days_one": "{{count}} día",
+      "days_other": "{{count}} días",
+      "sessions_one": "{{count}} sesión",
+      "sessions_other": "{{count}} sesiones",
+      "bodyWeight": "Peso corporal actual: {{kg}} kg (cada sesión indica el suyo)",
+      "bodyWeightUnknown": "Peso corporal actual: no registrado",
+      "formula": "Fórmula 1RM: {{formula}}",
+      "units": "Unidades: kg · repeticiones · tiempo mm:ss · distancia km",
+      "tags": "Etiquetas de serie: [C] calentamiento (excluida de todos los totales) · [D] serie descendente · [F] al fallo · @8 = RPE 8",
+      "bodyweightNote": "En ejercicios a peso corporal, el peso de la serie es lastre añadido al peso corporal."
+    },
+    "exercises": {
+      "title": "Ejercicios",
+      "custom": "personalizado",
+      "secondary": "secundarios",
+      "none": "ninguno",
+      "unknown": "desconocidos"
+    },
+    "sessions": {
+      "title": "Sesiones",
+      "bodyWeight": "peso corporal {{kg}} kg",
+      "notes": "Notas",
+      "note": "Nota",
+      "rest": "descanso {{seconds}} s",
+      "prs": "Récords",
+      "prPrevious": "antes {{value}}",
+      "prFirst": "primera marca",
+      "total": "Total: {{sets}} series efectivas · {{kg}} kg"
+    },
+    "weekly": {
+      "title": "Resumen semanal",
+      "week": "Semana {{from}} → {{to}}",
+      "totals": "Sesiones: {{sessions}} · Series efectivas: {{sets}} · Volumen: {{kg}} kg",
+      "muscles": "Series por músculo (directas + indirectas × 0,5)",
+      "balance": "Equilibrio",
+      "repRanges": "Rangos de repeticiones"
+    },
+    "progression": {
+      "title": "Progresión 1RM (ejercicios con {{min}} o más sesiones)",
+      "none": "Ningún ejercicio con {{min}} o más sesiones en el rango."
+    }
+  }
+}

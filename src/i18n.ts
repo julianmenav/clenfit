@@ -10,6 +10,7 @@ import analytics from './locales/es/analytics.json'
 import settings from './locales/es/settings.json'
 import reminders from './locales/es/reminders.json'
 import nutrition from './locales/es/nutrition.json'
+import report from './locales/es/report.json'
 
 export const resources = {
   es: {
@@ -23,6 +24,7 @@ export const resources = {
     settings,
     reminders,
     nutrition,
+    report,
   },
 } as const
 
