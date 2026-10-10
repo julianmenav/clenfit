@@ -6,7 +6,12 @@ import { Chip } from '@/components/ui/Chip'
 import { Sheet } from '@/components/ui/Sheet'
 import { useExerciseIndex } from '@/data/exerciseIndex'
 import { useUserProfile } from '@/data/hooks'
-import { buildReport, reportSections, type ReportSection } from '@/domain/report'
+import {
+  buildReport,
+  reportRangeProblem,
+  reportSections,
+  type ReportSection,
+} from '@/domain/report'
 import type { WithId, Workout } from '@/domain/types'
 import { toDateKey, weekEndKey, weekStartKey } from '@/lib/dates'
 import { copyText, deliverTextFile, reportFilename } from '@/lib/download'
@@ -45,7 +50,7 @@ export function ReportSheet({
   workouts: WithId<Workout>[]
 }) {
   const { t } = useTranslation(['report', 'common'])
-  const { byId } = useExerciseIndex()
+  const { byId, loading: indexLoading } = useExerciseIndex()
   const profile = useUserProfile()
   const [preset, setPreset] = useState<Preset>('4w')
   const [custom, setCustom] = useState<DateRange>(() => presetRange('4w'))
@@ -60,8 +65,12 @@ export function ReportSheet({
     () => workouts.filter((w) => w.dateKey >= range.from && w.dateKey <= range.to),
     [workouts, range],
   )
-  const rangeValid = range.from !== '' && range.to !== '' && range.from <= range.to
-  const canGenerate = rangeValid && inRange.length > 0
+  const todayKey = toDateKey(new Date())
+  const rangeProblem = reportRangeProblem(range.from, range.to, todayKey)
+  // profile + custom exercises must be in: a report built before they load
+  // would state the wrong formula / body weight and lose custom metadata
+  const canGenerate =
+    rangeProblem == null && inRange.length > 0 && profile !== undefined && !indexLoading
 
   function choosePreset(next: Preset) {
     // «Personalizado» starts from the dates of the preset that was active
@@ -146,14 +155,16 @@ export function ReportSheet({
                     type="date"
                     value={custom.to}
                     min={custom.from}
-                    max={toDateKey(new Date())}
+                    max={todayKey}
                     onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
                     className={inputClass}
                   />
                 </label>
               </div>
             )}
-            {!rangeValid && <p className="pt-2 text-xs text-ink-3">{t('report:range.invalid')}</p>}
+            {rangeProblem != null && (
+              <p className="pt-2 text-xs text-ink-3">{t(`report:range.${rangeProblem}`)}</p>
+            )}
           </section>
 
           <section>

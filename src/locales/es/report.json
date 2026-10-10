@@ -9,7 +9,9 @@
     "custom": "Personalizado",
     "from": "Desde",
     "to": "Hasta",
-    "invalid": "La fecha de inicio debe ser anterior a la de fin."
+    "empty": "Indica las dos fechas.",
+    "inverted": "La fecha de inicio debe ser anterior a la de fin.",
+    "future": "La fecha de fin no puede ser posterior a hoy."
   },
   "sections": {
     "title": "Secciones",

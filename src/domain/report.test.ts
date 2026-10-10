@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildReport, type ReportInput, type ReportWorkout } from './report'
+import { buildReport, reportRangeProblem, type ReportInput, type ReportWorkout } from './report'
 import type { ExerciseDef, SetEntry, WorkoutExercise } from './types'
 
 function set(partial: Partial<SetEntry>): SetEntry {
@@ -614,5 +614,28 @@ describe('buildReport · progresión 1RM', () => {
       }),
     )
     expect(r.progression!.map((p) => p.name)).toEqual(['Curl', 'Sentadilla'])
+  })
+})
+
+describe('reportRangeProblem', () => {
+  const today = '2026-10-10'
+
+  it('acepta un rango con fin hoy o antes y inicio no posterior al fin', () => {
+    expect(reportRangeProblem('2026-09-12', '2026-10-10', today)).toBeNull()
+    expect(reportRangeProblem('2026-10-10', '2026-10-10', today)).toBeNull()
+  })
+
+  it('detecta fechas vacías', () => {
+    expect(reportRangeProblem('', '2026-10-10', today)).toBe('empty')
+    expect(reportRangeProblem('2026-09-12', '', today)).toBe('empty')
+  })
+
+  it('detecta un inicio posterior al fin', () => {
+    expect(reportRangeProblem('2026-10-09', '2026-10-01', today)).toBe('inverted')
+  })
+
+  it('detecta un fin posterior a hoy (el max del input no impide teclearlo)', () => {
+    expect(reportRangeProblem('2026-09-12', '2027-01-01', today)).toBe('future')
+    expect(reportRangeProblem('2026-10-11', '2026-10-12', today)).toBe('future')
   })
 })

@@ -132,6 +132,26 @@ export interface Report {
   progression: ReportProgression[] | null
 }
 
+/* ---------------------------------- Range --------------------------------- */
+
+export type ReportRangeProblem = 'empty' | 'inverted' | 'future'
+
+/**
+ * Why a [fromKey, toKey] range cannot be reported, or null when it can. The
+ * date input's `max` only constrains the picker: a typed future date still
+ * lands in the value, so the guard lives here, not in the markup.
+ */
+export function reportRangeProblem(
+  fromKey: string,
+  toKey: string,
+  todayKey: string,
+): ReportRangeProblem | null {
+  if (fromKey === '' || toKey === '') return 'empty'
+  if (fromKey > toKey) return 'inverted'
+  if (toKey > todayKey) return 'future'
+  return null
+}
+
 /* ---------------------------------- Build --------------------------------- */
 
 export function buildReport(input: ReportInput): Report {

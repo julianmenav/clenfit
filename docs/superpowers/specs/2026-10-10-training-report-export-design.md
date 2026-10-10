@@ -31,8 +31,13 @@ to the title. It opens a tall `Sheet` with two steps.
 - Range chips: «4 semanas» (default), «8 semanas», «3 meses», «Personalizado».
   Presets are rolling windows ending today: 28, 56 and 91 days inclusive.
   «Personalizado» reveals two native `<input type="date">` fields, «Desde» and
-  «Hasta», prefilled with the last preset's dates; `Hasta` is capped at
-  today; an inverted range disables «Generar».
+  «Hasta», prefilled with the last preset's dates. The range is validated in
+  the domain (`reportRangeProblem`): an empty date, an inverted range or an
+  end date after today disables «Generar» and shows a hint; the input's
+  `max` alone is not enough because a typed date bypasses it.
+- «Generar» also waits for the user profile and the custom exercises to be
+  loaded, so the report never states a default formula or loses custom
+  exercise metadata.
 - Section checkboxes, all on by default: «Sesiones», «Resumen semanal»,
   «Progresión 1RM». Context and the exercise glossary are always included
   and not shown as options.
@@ -55,9 +60,10 @@ to the title. It opens a tall `Sheet` with two steps.
   Android), it calls `navigator.share({ files, title })` so the OS sheet
   offers both «Guardar en Archivos» and the LLM apps. Otherwise it triggers a
   plain `<a download>` with an object URL. Returns
-  `'shared' | 'downloaded' | 'cancelled'`; an `AbortError` from the share
-  sheet is `'cancelled'` and shows no toast. Any other failure shows an error
-  toast.
+  `'shared' | 'downloaded' | 'cancelled' | 'failed'`; an `AbortError` from
+  the share sheet is `'cancelled'` and shows no toast. Any other share error
+  (e.g. an expired gesture) falls through to the download path; only a
+  failed download shows an error toast.
 - Filename: `informe-<fromKey>-a-<toKey>.md`.
 
 Rationale: a direct download inside an installed PWA on iOS is unreliable and
