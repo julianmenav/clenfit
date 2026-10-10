@@ -1,4 +1,10 @@
-import type { BalanceGroup, RepRange } from './analytics'
+import {
+  muscleBalance,
+  muscleSetBreakdown,
+  repRangeDistribution,
+  type BalanceGroup,
+  type RepRange,
+} from './analytics'
 import { prDisplayGroups, type PrExerciseGroup } from './prDetails'
 import { summarizeWorkout } from './workoutSummary'
 import type {
@@ -149,7 +155,7 @@ export function buildReport(input: ReportInput): Report {
     sessions: wanted.has('sessions')
       ? inRange.map((w) => toSession(w, input.formula, nameOf))
       : null,
-    weeks: null,
+    weeks: wanted.has('weekly') ? weeklySummary(inRange, input) : null,
     progression: null,
   }
 }
@@ -237,4 +243,38 @@ function toSession(
     workingSets: totals.totalSets,
     volumeKg: totals.totalVolumeKg,
   }
+}
+
+function weeklySummary(workouts: ReportWorkout[], input: ReportInput): ReportWeek[] {
+  const byWeek = new Map<string, ReportWorkout[]>()
+  for (const w of workouts) {
+    const key = input.weekStartKeyOf(w.dateKey)
+    byWeek.set(key, [...(byWeek.get(key) ?? []), w])
+  }
+  return [...byWeek.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([weekStartKey, list]) => {
+      const totals = list.map((w) => summarizeWorkout(w))
+      const breakdown = muscleSetBreakdown(
+        list,
+        (id) => input.resolveDef(id)?.secondaryMuscles ?? [],
+      )
+      const muscles = [...breakdown.entries()]
+        .map(([muscle, b]) => ({ muscle, direct: b.direct, indirect: b.indirect }))
+        .filter((m) => m.direct + m.indirect > 0)
+        .sort(
+          (a, b) =>
+            b.direct + b.indirect - (a.direct + a.indirect) || a.muscle.localeCompare(b.muscle),
+        )
+      return {
+        weekStartKey,
+        weekEndKey: input.weekEndKeyOf(weekStartKey),
+        sessions: list.length,
+        workingSets: totals.reduce((sum, t) => sum + t.totalSets, 0),
+        volumeKg: totals.reduce((sum, t) => sum + t.totalVolumeKg, 0),
+        muscles,
+        balance: muscleBalance(totals.map((t) => ({ setsByMuscle: t.setsByMuscle }))),
+        repRanges: repRangeDistribution(list),
+      }
+    })
 }

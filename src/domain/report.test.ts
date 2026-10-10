@@ -343,3 +343,64 @@ describe('buildReport · sesiones', () => {
     expect(r.sessions![0].prs).toEqual([])
   })
 })
+
+describe('buildReport · resumen semanal', () => {
+  it('agrupa por semana (lunes inyectado), ascendente, solo semanas con sesiones', () => {
+    const r = buildReport(
+      input({
+        workouts: [
+          workout({ dateKey: '2026-09-22', exercises: [exercise({ sets: [set({ weightKg: 100, reps: 5 })] })] }),
+          workout({ dateKey: '2026-09-14', exercises: [exercise({ sets: [set({ weightKg: 80, reps: 5 })] })] }),
+          workout({ dateKey: '2026-09-16', exercises: [exercise({ sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })] })] }),
+        ],
+      }),
+    )
+    expect(r.weeks?.map((w) => [w.weekStartKey, w.weekEndKey, w.sessions, w.workingSets, w.volumeKg])).toEqual([
+      ['2026-09-14', '2026-09-20', 2, 3, 1200],
+      ['2026-09-21', '2026-09-27', 1, 1, 500],
+    ])
+  })
+
+  it('desglosa series directas e indirectas (×0,5) por músculo, total descendente', () => {
+    const r = buildReport(
+      input({
+        workouts: [
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [
+              exercise({ sets: [set({ weightKg: 80, reps: 5 }), set({ order: 1, weightKg: 80, reps: 5 })] }),
+            ],
+          }),
+        ],
+      }),
+    )
+    expect(r.weeks![0].muscles).toEqual([
+      { muscle: 'chest', direct: 2, indirect: 0 },
+      { muscle: 'shoulders', direct: 0, indirect: 1 },
+      { muscle: 'triceps', direct: 0, indirect: 1 },
+    ])
+  })
+
+  it('calcula equilibrio y rangos de repeticiones sin contar calentamientos', () => {
+    const r = buildReport(
+      input({
+        workouts: [
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [
+              exercise({
+                sets: [
+                  set({ type: 'warmup', weightKg: 40, reps: 10 }),
+                  set({ order: 1, weightKg: 100, reps: 3 }),
+                  set({ order: 2, weightKg: 80, reps: 8 }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    )
+    expect(r.weeks![0].balance).toEqual({ push: 2, pull: 0, legs: 0, core: 0 })
+    expect(r.weeks![0].repRanges).toEqual({ strength: 1, hypertrophy: 1, endurance: 0 })
+  })
+})
