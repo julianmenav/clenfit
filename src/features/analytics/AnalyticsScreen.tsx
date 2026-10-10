@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ChartBar, ChartPie, List } from 'lucide-react'
+import { ChartBar, ChartPie, FileText, List } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addDays, parseISO, subDays } from 'date-fns'
 import { Chip } from '@/components/ui/Chip'
@@ -32,6 +32,7 @@ import { muscleGroups, type WithId, type Workout } from '@/domain/types'
 import { addWeeksToKey, formatShortDate, toDateKey, weekEndKey, weekStartKey } from '@/lib/dates'
 import { formatKg } from '@/lib/formatSet'
 import { Last7DaysCard } from './Last7DaysCard'
+import { ReportSheet } from './ReportSheet'
 
 type RangeKey = 'week' | '4w' | '3m' | '1y' | 'all'
 const rangeDays: Record<Exclude<RangeKey, 'week'>, number | null> = {
@@ -43,11 +44,12 @@ const rangeDays: Record<Exclude<RangeKey, 'week'>, number | null> = {
 const rangeKeys: RangeKey[] = ['week', '4w', '3m', '1y', 'all']
 
 export function AnalyticsScreen() {
-  const { t } = useTranslation(['analytics', 'exercises', 'common'])
+  const { t } = useTranslation(['analytics', 'exercises', 'common', 'report'])
   const workouts = useCompletedWorkouts(500)
   const [range, setRange] = useState<RangeKey>('3m')
   const currentWeekStart = weekStartKey(toDateKey(new Date()))
   const [weekStart, setWeekStart] = useState(currentWeekStart)
+  const [reportOpen, setReportOpen] = useState(false)
 
   // ‹ stops at the week of the earliest loaded workout
   const minWeekStart = useMemo(() => {
@@ -75,7 +77,17 @@ export function AnalyticsScreen() {
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-6">
-      <h1 className="text-2xl font-bold tracking-tight">{t('analytics:title')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">{t('analytics:title')}</h1>
+        <button
+          type="button"
+          onClick={() => setReportOpen(true)}
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-chip border border-hairline bg-surface px-3 text-sm text-ink-2"
+        >
+          <FileText className="size-4" />
+          {t('report:open')}
+        </button>
+      </div>
 
       <Last7DaysCard workouts={workouts} />
 
@@ -120,6 +132,8 @@ export function AnalyticsScreen() {
           {range !== 'week' && <Frequency workouts={filtered} />}
         </>
       )}
+
+      <ReportSheet open={reportOpen} onOpenChange={setReportOpen} workouts={workouts} />
     </div>
   )
 }
