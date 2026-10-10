@@ -404,3 +404,134 @@ describe('buildReport · resumen semanal', () => {
     expect(r.weeks![0].repRanges).toEqual({ strength: 1, hypertrophy: 1, endurance: 0 })
   })
 })
+
+describe('buildReport · progresión 1RM', () => {
+  function benchDay(dateKey: string, weightKg: number, reps: number) {
+    return workout({
+      dateKey,
+      exercises: [exercise({ sets: [set({ weightKg, reps })] })],
+    })
+  }
+
+  it('excluye ejercicios con menos sesiones que el mínimo', () => {
+    const four = ['14', '15', '16', '17'].map((d) => benchDay(`2026-09-${d}`, 80, 5))
+    expect(buildReport(input({ workouts: four })).progression).toEqual([])
+    const five = [...four, benchDay('2026-09-18', 80, 5)]
+    expect(buildReport(input({ workouts: five })).progression).toHaveLength(1)
+  })
+
+  it('respeta minProgressionSessions', () => {
+    const two = ['14', '15'].map((d) => benchDay(`2026-09-${d}`, 80, 5))
+    expect(buildReport(input({ workouts: two, minProgressionSessions: 2 })).progression).toHaveLength(1)
+  })
+
+  it('un punto por sesión: el mejor 1RM y la serie que lo produce, fechas ascendentes', () => {
+    const r = buildReport(
+      input({
+        minProgressionSessions: 1,
+        workouts: [
+          workout({
+            dateKey: '2026-09-16',
+            exercises: [
+              exercise({
+                sets: [
+                  set({ type: 'warmup', weightKg: 100, reps: 10 }),
+                  set({ order: 1, weightKg: 80, reps: 6 }),
+                  set({ order: 2, weightKg: 85, reps: 3 }),
+                ],
+              }),
+            ],
+          }),
+          benchDay('2026-09-14', 80, 5),
+        ],
+      }),
+    )
+    expect(r.progression).toEqual([
+      {
+        exerciseId: 'bench',
+        name: 'Press banca con barra',
+        points: [
+          { dateKey: '2026-09-14', oneRm: 80 * (1 + 5 / 30), weightKg: 80, reps: 5 },
+          { dateKey: '2026-09-16', oneRm: 80 * (1 + 6 / 30), weightKg: 80, reps: 6 },
+        ],
+      },
+    ])
+  })
+
+  it('fusiona dos apariciones del mismo ejercicio en una sesión', () => {
+    const r = buildReport(
+      input({
+        minProgressionSessions: 1,
+        workouts: [
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [
+              exercise({ sets: [set({ weightKg: 80, reps: 5 })] }),
+              exercise({ order: 1, sets: [set({ weightKg: 90, reps: 5 })] }),
+            ],
+          }),
+        ],
+      }),
+    )
+    expect(r.progression![0].points).toEqual([
+      { dateKey: '2026-09-14', oneRm: 90 * (1 + 5 / 30), weightKg: 90, reps: 5 },
+    ])
+  })
+
+  it('ignora ejercicios que no son de peso y repeticiones (peso corporal incluido)', () => {
+    const r = buildReport(
+      input({
+        minProgressionSessions: 1,
+        resolveDef: () => undefined,
+        workouts: [
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [
+              exercise({
+                exerciseId: 'dips',
+                exerciseName: 'Fondos',
+                measurement: 'reps_only',
+                usesBodyweight: true,
+                sets: [set({ weightKg: 10, reps: 10 })],
+              }),
+              exercise({
+                exerciseId: 'plank',
+                exerciseName: 'Plancha',
+                measurement: 'time_only',
+                order: 1,
+                sets: [set({ durationSeconds: 60 })],
+              }),
+            ],
+          }),
+        ],
+      }),
+    )
+    expect(r.progression).toEqual([])
+  })
+
+  it('usa la fórmula pedida', () => {
+    const r = buildReport(
+      input({ formula: 'brzycki', minProgressionSessions: 1, workouts: [benchDay('2026-09-14', 80, 5)] }),
+    )
+    expect(r.progression![0].points[0].oneRm).toBeCloseTo((80 * 36) / (37 - 5))
+  })
+
+  it('ordena los ejercicios por nombre', () => {
+    const r = buildReport(
+      input({
+        minProgressionSessions: 1,
+        resolveDef: () => undefined,
+        workouts: [
+          workout({
+            dateKey: '2026-09-14',
+            exercises: [
+              exercise({ exerciseId: 's', exerciseName: 'Sentadilla', sets: [set({ weightKg: 100, reps: 5 })] }),
+              exercise({ exerciseId: 'c', exerciseName: 'Curl', order: 1, sets: [set({ weightKg: 20, reps: 10 })] }),
+            ],
+          }),
+        ],
+      }),
+    )
+    expect(r.progression!.map((p) => p.name)).toEqual(['Curl', 'Sentadilla'])
+  })
+})

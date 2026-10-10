@@ -5,6 +5,7 @@ import {
   type BalanceGroup,
   type RepRange,
 } from './analytics'
+import { estimateSet1Rm } from './oneRepMax'
 import { prDisplayGroups, type PrExerciseGroup } from './prDetails'
 import { summarizeWorkout } from './workoutSummary'
 import type {
@@ -156,7 +157,14 @@ export function buildReport(input: ReportInput): Report {
       ? inRange.map((w) => toSession(w, input.formula, nameOf))
       : null,
     weeks: wanted.has('weekly') ? weeklySummary(inRange, input) : null,
-    progression: null,
+    progression: wanted.has('progression')
+      ? progression(
+          inRange,
+          input.formula,
+          input.minProgressionSessions ?? MIN_PROGRESSION_SESSIONS,
+          nameOf,
+        )
+      : null,
   }
 }
 
@@ -277,4 +285,44 @@ function weeklySummary(workouts: ReportWorkout[], input: ReportInput): ReportWee
         repRanges: repRangeDistribution(list),
       }
     })
+}
+
+/**
+ * One point per session for weight-and-reps exercises only: on bodyweight
+ * exercises the stored weight is ballast, not the lift, so a 1RM is meaningless.
+ */
+function progression(
+  workouts: ReportWorkout[],
+  formula: OneRmFormula,
+  minSessions: number,
+  nameOf: (ex: WorkoutExercise) => string,
+): ReportProgression[] {
+  const byExercise = new Map<string, ReportProgression>()
+  for (const w of workouts) {
+    const bestInSession = new Map<string, ReportProgressionPoint>()
+    for (const ex of w.exercises) {
+      if (ex.measurement !== 'weight_reps') continue
+      for (const s of ex.sets) {
+        const oneRm = estimateSet1Rm(s, formula)
+        if (oneRm == null) continue
+        const current = bestInSession.get(ex.exerciseId)
+        if (current == null || oneRm > current.oneRm) {
+          // estimateSet1Rm returns a value only when both fields are present
+          bestInSession.set(ex.exerciseId, {
+            dateKey: w.dateKey,
+            oneRm,
+            weightKg: s.weightKg!,
+            reps: s.reps!,
+          })
+        }
+      }
+      if (bestInSession.has(ex.exerciseId) && !byExercise.has(ex.exerciseId)) {
+        byExercise.set(ex.exerciseId, { exerciseId: ex.exerciseId, name: nameOf(ex), points: [] })
+      }
+    }
+    for (const [id, point] of bestInSession) byExercise.get(id)!.points.push(point)
+  }
+  return [...byExercise.values()]
+    .filter((p) => p.points.length >= minSessions)
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
